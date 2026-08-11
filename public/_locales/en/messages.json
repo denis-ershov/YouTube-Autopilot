@@ -1,0 +1,10 @@
+{
+  "extName": {
+    "message": "YouTube Autopilot",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Workflow automation on YouTube based on real watch tracking.",
+    "description": "Extension description"
+  }
+}

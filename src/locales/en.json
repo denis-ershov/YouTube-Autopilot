@@ -1,0 +1,78 @@
+{
+  "app": {
+    "title": "YouTube Autopilot",
+    "subtitle": "Smart YouTube Workflow Automation",
+    "statusActive": "Autopilot Active",
+    "statusPaused": "Autopilot Disabled"
+  },
+  "popup": {
+    "currentVideo": "Current Video",
+    "noVideo": "No active YouTube video",
+    "watched": "Watched",
+    "realWatchTime": "Real watch time",
+    "positionWatchTime": "Position",
+    "nextAction": "Next action",
+    "noActions": "No pending actions",
+    "openDashboard": "Open Dashboard",
+    "quickSettings": "Settings",
+    "history": "History"
+  },
+  "dashboard": {
+    "nav": {
+      "overview": "Overview",
+      "rules": "Automations",
+      "history": "History",
+      "watchLater": "Watch Later Manager",
+      "settings": "Settings"
+    },
+    "overview": {
+      "statsTitle": "Watch Overview",
+      "totalWatched": "Watched Today",
+      "completedVideos": "Completed Videos",
+      "actionsExecuted": "Automations Triggered",
+      "likesGiven": "Auto Likes"
+    },
+    "rules": {
+      "title": "Automations",
+      "create": "Create Automation",
+      "presets": "Presets",
+      "empty": "No rules created yet",
+      "when": "WHEN",
+      "and": "AND",
+      "then": "THEN",
+      "ruleName": "Automation Name",
+      "save": "Save Rule",
+      "delete": "Delete",
+      "enable": "Enable",
+      "disable": "Disable"
+    },
+    "settings": {
+      "title": "Settings",
+      "watchMode": "Watch Tracking Mode",
+      "watchModeReal": "Real Watched Time (Interval tracking)",
+      "watchModePosition": "Position Based (currentTime / duration)",
+      "watchModeHybrid": "Hybrid (Threshold detection)",
+      "automationMode": "Automation Mode",
+      "modeAuto": "Automatic execution",
+      "modeApproval": "Ask before action (Recommended)",
+      "modeDisabled": "Disabled",
+      "language": "Interface Language",
+      "langAuto": "Auto (Browser)",
+      "langRu": "Русский",
+      "langEn": "English",
+      "saveSuccess": "Settings saved successfully"
+    }
+  },
+  "presets": {
+    "likeCompleted": "❤️ Like completed videos",
+    "cleanWatchLater": "🧹 Clean Watch Later list",
+    "favoriteCreators": "👤 Support favorite creators"
+  },
+  "approval": {
+    "title": "Automation Request",
+    "rule": "Rule",
+    "wantsTo": "wants to execute",
+    "allow": "Allow",
+    "skip": "Skip"
+  }
+}

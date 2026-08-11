@@ -1,0 +1,78 @@
+{
+  "app": {
+    "title": "YouTube Autopilot",
+    "subtitle": "Умная автоматизация YouTube",
+    "statusActive": "Автопилот активен",
+    "statusPaused": "Автопилот отключен"
+  },
+  "popup": {
+    "currentVideo": "Текущее видео",
+    "noVideo": "Нет активного YouTube видео",
+    "watched": "Просмотрено",
+    "realWatchTime": "Реальный просмотр",
+    "positionWatchTime": "Позиция плеера",
+    "nextAction": "Следующее действие",
+    "noActions": "Ожидающих действий нет",
+    "openDashboard": "Панель управления",
+    "quickSettings": "Настройки",
+    "history": "История"
+  },
+  "dashboard": {
+    "nav": {
+      "overview": "Обзор",
+      "rules": "Автоматизации",
+      "history": "История",
+      "watchLater": "Менеджер Watch Later",
+      "settings": "Настройки"
+    },
+    "overview": {
+      "statsTitle": "Обзор просмотров",
+      "totalWatched": "Просмотрено сегодня",
+      "completedVideos": "Завершенных видео",
+      "actionsExecuted": "Сработавших правил",
+      "likesGiven": "Поставлено лайков"
+    },
+    "rules": {
+      "title": "Правила автоматизации",
+      "create": "Создать правило",
+      "presets": "Готовые пресеты",
+      "empty": "Правил пока не создано",
+      "when": "ЕСЛИ",
+      "and": "И",
+      "then": "ТОГДА",
+      "ruleName": "Название правила",
+      "save": "Сохранить правило",
+      "delete": "Удалить",
+      "enable": "Включить",
+      "disable": "Выключить"
+    },
+    "settings": {
+      "title": "Настройки",
+      "watchMode": "Режим отслеживания просмотра",
+      "watchModeReal": "Реальное время (учет интервалов)",
+      "watchModePosition": "Позиция (currentTime / duration)",
+      "watchModeHybrid": "Гибридный режим",
+      "automationMode": "Режим автоматизации",
+      "modeAuto": "Автоматическое выполнение",
+      "modeApproval": "Спрашивать перед действием (Рекомендуется)",
+      "modeDisabled": "Отключено",
+      "language": "Язык интерфейса",
+      "langAuto": "Авто (Язык браузера)",
+      "langRu": "Русский",
+      "langEn": "English",
+      "saveSuccess": "Настройки успешно сохранены"
+    }
+  },
+  "presets": {
+    "likeCompleted": "❤️ Ставить лайк досмотренным видео",
+    "cleanWatchLater": "🧹 Очищать Смотреть позже",
+    "favoriteCreators": "👤 Поддерживать любимых авторов"
+  },
+  "approval": {
+    "title": "Запрос автоматизации",
+    "rule": "Правило",
+    "wantsTo": "хочет выполнить",
+    "allow": "Разрешить",
+    "skip": "Пропустить"
+  }
+}
