@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Pause, ExternalLink, Settings, History, SlidersHorizontal, ShieldCheck, Heart } from 'lucide-react';
-import { t, formatSeconds } from '../../src/i18n';
+import { Play, ExternalLink, ShieldCheck, Heart } from 'lucide-react';
+import { t, formatSeconds, setLanguage } from '../../src/i18n';
 import { getSettings, saveSettings } from '../../src/core/storage/storage';
 import { Settings as SettingsType } from '../../src/types/settings';
 import { VideoRecord } from '../../src/types/video';
@@ -18,14 +18,17 @@ export default function App() {
     setLoading(true);
     const s = await getSettings();
     setSettings(s);
+    if (s?.language) {
+      setLanguage(s.language);
+    }
 
     // Запросить текущее видео у активной вкладки
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.id && tab.url?.includes('youtube.com/watch')) {
-        // Мы на YouTube!
-        // Пытаемся получить инфо от фонового скрипта или инжектированного адаптера
-        chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, () => {});
+      if (typeof chrome !== 'undefined' && chrome.tabs?.query) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab && tab.id && tab.url?.includes('youtube.com/watch')) {
+          chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, () => {});
+        }
       }
     } catch (e) {
       console.warn('Chrome API unavailable in dev mode', e);
@@ -54,7 +57,7 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center h-[480px] space-y-3 bg-zinc-950 text-zinc-400">
         <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs">Loading YouTube Autopilot...</p>
+        <p className="text-xs">{t('popup.loading')}</p>
       </div>
     );
   }
@@ -75,7 +78,7 @@ export default function App() {
 
         <button
           onClick={toggleEnabled}
-          aria-label="Toggle Autopilot"
+          aria-label={settings.enabled ? t('app.statusActive') : t('app.statusPaused')}
           className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
             settings.enabled
               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
@@ -92,7 +95,7 @@ export default function App() {
         <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
           <span>{t('popup.currentVideo')}</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300">
-            {settings.watchMode.toUpperCase()} MODE
+            {settings.watchMode.toUpperCase()} {t('popup.mode')}
           </span>
         </div>
 
@@ -101,7 +104,7 @@ export default function App() {
             <>
               <div>
                 <h2 className="text-xs font-semibold text-zinc-100 line-clamp-2">{currentVideo.title}</h2>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{currentVideo.channelName || 'YouTube Creator'}</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{currentVideo.channelName || t('dashboard.history.creatorDefault')}</p>
               </div>
 
               {/* Progress Bar */}
@@ -118,7 +121,7 @@ export default function App() {
                 </div>
                 <div className="flex justify-between text-[10px] text-zinc-500 pt-0.5">
                   <span>{t('popup.realWatchTime')}: {formatSeconds(currentVideo.watchedSeconds)}</span>
-                  <span>Total: {formatSeconds(currentVideo.duration)}</span>
+                  <span>{t('popup.total')}: {formatSeconds(currentVideo.duration)}</span>
                 </div>
               </div>
             </>
@@ -138,7 +141,7 @@ export default function App() {
             </div>
             <div>
               <p className="text-[10px] text-zinc-400 uppercase tracking-wider">{t('popup.nextAction')}</p>
-              <p className="text-xs font-medium text-zinc-200">Auto Like at 90%</p>
+              <p className="text-xs font-medium text-zinc-200">{t('popup.likeAt', { percent: 90 })}</p>
             </div>
           </div>
           <ShieldCheck className="w-4 h-4 text-emerald-400 opacity-80" />

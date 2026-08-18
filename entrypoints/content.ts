@@ -5,6 +5,7 @@ import { RuleEngine } from '../src/core/rules/RuleEngine';
 import { ActionEngine } from '../src/core/actions/ActionEngine';
 import { getSettings, getRules } from '../src/core/storage/storage';
 import { VideoRecord } from '../src/types/video';
+import { t, setLanguage } from '../src/i18n';
 
 export default defineContentScript({
   matches: ['https://*.youtube.com/*'],
@@ -16,6 +17,13 @@ export default defineContentScript({
     let currentTracker: RealWatchTracker | null = null;
     let currentVideo: (VideoRecord & { isSubscribed?: boolean }) | null = null;
 
+    // Инициализировать язык настроек
+    getSettings().then((s) => {
+      if (s?.language) {
+        setLanguage(s.language);
+      }
+    });
+
     // Регистрация смены видео (SPA навигация)
     adapter.getNavigationObserver().onVideoChange(async (videoId, url) => {
       console.log(`[YouTube Autopilot] Navigated to video: ${videoId}`);
@@ -25,6 +33,9 @@ export default defineContentScript({
         if (!metadata) return;
 
         const settings = await getSettings();
+        if (settings?.language) {
+          setLanguage(settings.language);
+        }
 
         // Отправить уведомление на background
         chrome.runtime.sendMessage({
@@ -72,7 +83,7 @@ export default defineContentScript({
       currentVideo.intervals = stats.intervals;
 
       // Обновить инлайн-индикатор плеера
-      adapter.getOverlay().renderOrUpdate(stats.watchedPercent, stats.watchedSeconds, '❤️ Like at 90%');
+      adapter.getOverlay().renderOrUpdate(stats.watchedPercent, stats.watchedSeconds, t('player.likeAt', { percent: 90 }));
 
       // Отправлять обновление прогресса на background каждые ~2 секунды
       if (eventType === 'timeupdate' || eventType === 'pause' || eventType === 'ended') {
@@ -88,6 +99,9 @@ export default defineContentScript({
 
         // Проверка и вычисление правил
         const settings = await getSettings();
+        if (settings?.language) {
+          setLanguage(settings.language);
+        }
         const rules = await getRules();
 
         const plan = await actionEngine.filterExecutableActions(rules, currentVideo, settings);
@@ -136,6 +150,8 @@ function showApprovalBanner(ruleName: string, actionType: string, onApprove: () 
   const existing = document.getElementById('yt-autopilot-approval-banner');
   if (existing) existing.remove();
 
+  const actionName = t(`common.actions.${actionType}` as any) || actionType;
+
   const banner = document.createElement('div');
   banner.id = 'yt-autopilot-approval-banner';
   banner.style.cssText = `
@@ -143,26 +159,32 @@ function showApprovalBanner(ruleName: string, actionType: string, onApprove: () 
     bottom: 24px;
     right: 24px;
     z-index: 999999;
-    background: #18181b;
+    background: rgba(24, 24, 27, 0.96);
+    backdrop-filter: blur(12px);
     color: #f4f4f5;
-    border: 1px solid #3f3f46;
+    border: 1px solid rgba(63, 63, 70, 0.8);
     border-radius: 12px;
     padding: 16px 20px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    font-family: Inter, sans-serif;
-    font-size: 14px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+    font-family: 'YouTube Noto', Roboto, Arial, sans-serif;
+    font-size: 13px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-width: 320px;
+    gap: 10px;
+    max-width: 340px;
   `;
 
   banner.innerHTML = `
-    <div style="font-weight: 600; color: #3b82f6;">🤖 YouTube Autopilot</div>
-    <div>Rule <b>"${ruleName}"</b> wants to execute: <b>${actionType}</b></div>
+    <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #3ea6ff; font-size: 13px;">
+      <span>🤖</span>
+      <span>${t('app.title')}</span>
+    </div>
+    <div style="font-size: 12px; color: #e4e4e7; line-height: 1.4;">
+      ${t('approval.rule')} <b>"${ruleName}"</b> ${t('approval.wantsTo')}: <b style="color: #3ea6ff;">${actionName}</b>
+    </div>
     <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
-      <button id="yt-ap-skip" style="background: transparent; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 6px; padding: 6px 12px; cursor: pointer;">Skip</button>
-      <button id="yt-ap-allow" style="background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-weight: 500; cursor: pointer;">Allow</button>
+      <button id="yt-ap-skip" style="background: transparent; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer;">${t('approval.skip')}</button>
+      <button id="yt-ap-allow" style="background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer;">${t('approval.allow')}</button>
     </div>
   `;
 

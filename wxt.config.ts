@@ -21,5 +21,11 @@ export default defineConfig({
       page: 'dashboard.html',
       open_in_tab: true,
     },
+    browser_specific_settings: {
+      gecko: {
+        id: 'youtube-autopilot@addon',
+        strict_min_version: '109.0',
+      },
+    },
   },
 });

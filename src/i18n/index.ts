@@ -9,7 +9,7 @@ const dictionaries: Record<string, TranslationDict> = {
   ru: ruDict,
 };
 
-let currentLanguage: 'ru' | 'en' = 'ru';
+let currentLanguage: 'ru' | 'en' = typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en';
 
 export function getBrowserLanguage(): 'ru' | 'en' {
   if (typeof navigator !== 'undefined') {
@@ -17,6 +17,10 @@ export function getBrowserLanguage(): 'ru' | 'en' {
     if (lang.startsWith('ru')) return 'ru';
   }
   return 'en';
+}
+
+export function getCurrentLanguage(): 'ru' | 'en' {
+  return currentLanguage;
 }
 
 export function setLanguage(lang: LanguageCode) {

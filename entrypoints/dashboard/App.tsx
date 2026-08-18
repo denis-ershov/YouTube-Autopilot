@@ -11,13 +11,11 @@ import {
   Heart,
   Globe,
   Sparkles,
-  Shield,
-  Layers,
-  Filter,
   Bookmark,
   AlertTriangle,
+  Filter,
 } from 'lucide-react';
-import { t, formatSeconds } from '../../src/i18n';
+import { t, formatSeconds, setLanguage } from '../../src/i18n';
 import { getSettings, saveSettings, getRules, saveRule, deleteRule, DEFAULT_PRESET_RULES } from '../../src/core/storage/storage';
 import { getAllVideos } from '../../src/database/indexeddb';
 import { Settings as SettingsType, LanguageCode, WatchTrackingMode, AutomationMode } from '../../src/types/settings';
@@ -58,6 +56,10 @@ export default function App() {
     setRules(r);
     setVideos(v);
 
+    if (s?.language) {
+      setLanguage(s.language);
+    }
+
     // Проверить статус Onboarding
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.local.get(['onboardingCompleted'], (res) => {
@@ -88,6 +90,9 @@ export default function App() {
   const handleUpdateSettings = async (updated: Partial<SettingsType>) => {
     if (!settings) return;
     const newSettings = { ...settings, ...updated };
+    if (updated.language) {
+      setLanguage(updated.language);
+    }
     setSettings(newSettings);
     await saveSettings(newSettings);
   };
@@ -144,7 +149,7 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-zinc-400">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-3 text-sm">Loading Dashboard...</p>
+        <p className="mt-3 text-sm">{t('common.loading')}</p>
       </div>
     );
   }
@@ -175,7 +180,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base font-semibold text-zinc-100">{t('app.title')}</h1>
-              <p className="text-xs text-zinc-400">v1.0.0 • Full Coverage</p>
+              <p className="text-xs text-zinc-400">{t('app.version')}</p>
             </div>
           </div>
 
@@ -246,16 +251,16 @@ export default function App() {
         <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between px-2">
           <div className="flex items-center space-x-2 text-xs text-zinc-400">
             <Globe className="w-4 h-4 text-zinc-400" />
-            <span>Language</span>
+            <span>{t('dashboard.settings.language')}</span>
           </div>
           <select
             value={settings.language}
             onChange={(e) => handleUpdateSettings({ language: e.target.value as LanguageCode })}
             className="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2 py-1 text-zinc-200 focus:outline-none focus:border-brand-500"
           >
-            <option value="auto">Auto</option>
-            <option value="ru">Русский</option>
-            <option value="en">English</option>
+            <option value="auto">{t('dashboard.settings.langAuto')}</option>
+            <option value="ru">{t('dashboard.settings.langRu')}</option>
+            <option value="en">{t('dashboard.settings.langEn')}</option>
           </select>
         </div>
       </aside>
@@ -267,7 +272,7 @@ export default function App() {
           <div className="space-y-6 max-w-5xl">
             <div>
               <h2 className="text-xl font-bold text-zinc-100">{t('dashboard.overview.statsTitle')}</h2>
-              <p className="text-xs text-zinc-400 mt-1">Real watch tracking statistics & automation summary</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('dashboard.overview.subtitle')}</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -312,7 +317,7 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-zinc-100">{t('dashboard.rules.title')}</h2>
-                <p className="text-xs text-zinc-400 mt-1">Configure IF → WHEN → THEN rules</p>
+                <p className="text-xs text-zinc-400 mt-1">{t('dashboard.rules.subtitle')}</p>
               </div>
               <button
                 onClick={() => setIsCreatingRule(true)}
@@ -327,7 +332,7 @@ export default function App() {
             <div className="bg-zinc-900/80 border border-zinc-800 p-4 rounded-xl space-y-3">
               <span className="text-xs font-semibold text-zinc-300 flex items-center space-x-2">
                 <Sparkles className="w-3.5 h-3.5 text-brand-400" />
-                <span>Quick Presets</span>
+                <span>{t('dashboard.rules.presets')}</span>
               </span>
               <div className="flex flex-wrap gap-2">
                 {DEFAULT_PRESET_RULES.map((preset) => (
@@ -350,7 +355,7 @@ export default function App() {
               >
                 <h3 className="text-sm font-semibold text-brand-400 flex items-center space-x-2">
                   <Sparkles className="w-4 h-4" />
-                  <span>New Rule Automation</span>
+                  <span>{t('dashboard.rules.newRuleTitle')}</span>
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -359,7 +364,7 @@ export default function App() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Auto Like at 90%"
+                      placeholder={t('dashboard.rules.placeholderName')}
                       value={newRuleName}
                       onChange={(e) => setNewRuleName(e.target.value)}
                       className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
@@ -367,7 +372,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1">Watched Threshold (%)</label>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1">{t('dashboard.rules.thresholdLabel')}</label>
                     <input
                       type="number"
                       min="1"
@@ -379,16 +384,16 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-zinc-400 mb-1">Action to perform</label>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1">{t('dashboard.rules.actionLabel')}</label>
                     <select
                       value={newRuleAction}
                       onChange={(e) => setNewRuleAction(e.target.value as ActionType)}
                       className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
                     >
-                      <option value="LIKE_VIDEO">❤️ Like Video</option>
-                      <option value="REMOVE_FROM_WATCH_LATER">🧹 Remove from Watch Later</option>
-                      <option value="SAVE_VIDEO">📚 Save Video</option>
-                      <option value="HIDE_VIDEO">🙈 Hide Video UI</option>
+                      <option value="LIKE_VIDEO">{t('common.actions.LIKE_VIDEO')}</option>
+                      <option value="REMOVE_FROM_WATCH_LATER">{t('common.actions.REMOVE_FROM_WATCH_LATER')}</option>
+                      <option value="SAVE_VIDEO">{t('common.actions.SAVE_VIDEO')}</option>
+                      <option value="HIDE_VIDEO">{t('common.actions.HIDE_VIDEO')}</option>
                     </select>
                   </div>
                 </div>
@@ -399,7 +404,7 @@ export default function App() {
                     onClick={() => setIsCreatingRule(false)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:bg-zinc-800"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -433,13 +438,12 @@ export default function App() {
                               : 'bg-zinc-800 text-zinc-500'
                           }`}
                         >
-                          {rule.enabled ? 'Active' : 'Disabled'}
+                          {rule.enabled ? t('common.active') : t('common.disabled')}
                         </span>
                       </div>
                       <p className="text-xs text-zinc-400">
-                        <span className="text-brand-400 font-medium">WHEN</span> Watched &ge;{' '}
-                        {String(rule.conditions[0]?.value ?? '')}% <span className="text-brand-400 font-medium">THEN</span>{' '}
-                        {rule.actions[0]?.type}
+                        <span className="text-brand-400 font-medium">{t('dashboard.rules.when')}</span> {t('dashboard.rules.watchedCondition', { threshold: String(rule.conditions[0]?.value ?? '') })} <span className="text-brand-400 font-medium">{t('dashboard.rules.then')}</span>{' '}
+                        {t(`common.actions.${rule.actions[0]?.type}` as any) || rule.actions[0]?.type}
                       </p>
                     </div>
 
@@ -458,7 +462,7 @@ export default function App() {
                       <button
                         onClick={() => handleDeleteRule(rule.id)}
                         className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        aria-label="Delete rule"
+                        aria-label={t('common.delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -475,34 +479,34 @@ export default function App() {
           <div className="space-y-6 max-w-5xl">
             <div>
               <h2 className="text-xl font-bold text-zinc-100">{t('dashboard.nav.watchLater')}</h2>
-              <p className="text-xs text-zinc-400 mt-1">Manage and auto-clean watched videos from Watch Later</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('dashboard.watchLater.subtitle')}</p>
             </div>
 
             {/* Warning Banner */}
             <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-start space-x-3 text-amber-200 text-xs">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">Auto-cleanup Warning</p>
+                <p className="font-semibold">{t('dashboard.watchLater.warningTitle')}</p>
                 <p className="text-[11px] text-amber-300/80 mt-0.5">
-                  This feature automatically removes videos from Watch Later list after reaching your selected completion threshold.
+                  {t('dashboard.watchLater.warningDesc')}
                 </p>
               </div>
             </div>
 
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-zinc-200">Completion Filter Range</span>
+                <span className="text-xs font-semibold text-zinc-200">{t('dashboard.watchLater.filterRange')}</span>
                 <select
                   value={watchLaterRange}
                   onChange={(e) => setWatchLaterRange(e.target.value)}
                   className="bg-zinc-800 border border-zinc-700 text-xs text-zinc-200 rounded-lg px-3 py-1.5"
                 >
-                  <option value="all">All Videos</option>
-                  <option value="25">&lt; 25% Watched</option>
-                  <option value="50">25–50% Watched</option>
-                  <option value="75">50–75% Watched</option>
-                  <option value="90">75–90% Watched</option>
-                  <option value="100">90–100% Watched</option>
+                  <option value="all">{t('dashboard.watchLater.allVideos')}</option>
+                  <option value="25">{t('dashboard.watchLater.range25')}</option>
+                  <option value="50">{t('dashboard.watchLater.range50')}</option>
+                  <option value="75">{t('dashboard.watchLater.range75')}</option>
+                  <option value="90">{t('dashboard.watchLater.range90')}</option>
+                  <option value="100">{t('dashboard.watchLater.range100')}</option>
                 </select>
               </div>
             </div>
@@ -515,7 +519,7 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-zinc-100">{t('dashboard.nav.history')}</h2>
-                <p className="text-xs text-zinc-400 mt-1">Locally stored watch history and real intervals</p>
+                <p className="text-xs text-zinc-400 mt-1">{t('dashboard.history.subtitle')}</p>
               </div>
 
               {/* Filters */}
@@ -526,10 +530,10 @@ export default function App() {
                   onChange={(e) => setHistoryFilter(e.target.value as any)}
                   className="bg-zinc-800 border border-zinc-700 text-xs text-zinc-200 rounded-lg px-3 py-1.5"
                 >
-                  <option value="all">All History</option>
-                  <option value="completed">Completed (&ge;90%)</option>
-                  <option value="liked">Liked</option>
-                  <option value="saved">Saved</option>
+                  <option value="all">{t('dashboard.history.allHistory')}</option>
+                  <option value="completed">{t('dashboard.history.completed')}</option>
+                  <option value="liked">{t('dashboard.history.liked')}</option>
+                  <option value="saved">{t('dashboard.history.saved')}</option>
                 </select>
               </div>
             </div>
@@ -537,7 +541,7 @@ export default function App() {
             <div className="space-y-3">
               {filteredVideos.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-zinc-800 rounded-xl text-zinc-500 text-xs">
-                  No watch history recorded yet. Open YouTube to start tracking!
+                  {t('dashboard.history.empty')}
                 </div>
               ) : (
                 filteredVideos.map((video) => (
@@ -548,13 +552,13 @@ export default function App() {
                     <div className="space-y-1">
                       <h3 className="text-xs font-semibold text-zinc-100">{video.title}</h3>
                       <p className="text-[11px] text-zinc-400">
-                        {video.channelName || 'YouTube Creator'} • Duration: {formatSeconds(video.duration)}
+                        {video.channelName || t('dashboard.history.creatorDefault')} • {t('dashboard.history.duration')}: {formatSeconds(video.duration)}
                       </p>
                     </div>
 
                     <div className="text-right space-y-1">
                       <span className="text-xs font-bold text-brand-400">{video.watchedPercent}%</span>
-                      <p className="text-[10px] text-zinc-500">Real: {formatSeconds(video.watchedSeconds)}</p>
+                      <p className="text-[10px] text-zinc-500">{t('dashboard.history.real')}: {formatSeconds(video.watchedSeconds)}</p>
                     </div>
                   </div>
                 ))
@@ -568,7 +572,7 @@ export default function App() {
           <div className="space-y-6 max-w-3xl">
             <div>
               <h2 className="text-xl font-bold text-zinc-100">{t('dashboard.settings.title')}</h2>
-              <p className="text-xs text-zinc-400 mt-1">Extension behavior and automation modes</p>
+              <p className="text-xs text-zinc-400 mt-1">{t('dashboard.settings.subtitle')}</p>
             </div>
 
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-6">

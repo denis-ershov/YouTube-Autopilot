@@ -6,8 +6,14 @@
   "private": true,
   "scripts": {
     "dev": "wxt",
-    "build": "wxt build",
-    "zip": "wxt zip",
+    "build": "wxt build -b chrome",
+    "build:chrome": "wxt build -b chrome",
+    "build:firefox": "wxt build -b firefox",
+    "build:all": "wxt build -b chrome && wxt build -b firefox",
+    "zip": "wxt zip -b chrome",
+    "zip:chrome": "wxt zip -b chrome",
+    "zip:firefox": "wxt zip -b firefox",
+    "zip:all": "wxt zip -b chrome && wxt zip -b firefox",
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare"
   },

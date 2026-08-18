@@ -24,8 +24,15 @@
   - `WatchLaterView`: Раздел менеджера списков Смотреть позже с фильтрацией по проценту просмотра.
   - `HistoryView`: Детализированный лог активности с фильтрами по статусам (All, Watched, Liked, Saved, Removed, Failed).
   - `Popup` & `Dashboard`: Обновленные мультиязычные интерфейсы.
-- **Сборка и дистрибутив**:
-  - Проведена успешно производственная сборка в `.output/chrome-mv3` и запакован ZIP-архив `.output/youtube-autopilot-1.0.0-chrome.zip` (98.09 KB).
+- **Глобальная проверка и 100% локализация**:
+  - Все хардкод-строки в `OnboardingModal.tsx`, `Dashboard/App.tsx`, `Popup/App.tsx`, `YouTubePlayerOverlay.ts` и `content.ts` переведены на словарную систему i18n `t(...)`.
+  - Расширены словари `ru.json` и `en.json` (разделы `common`, `onboarding`, `popup`, `dashboard`, `player`, `approval`).
+  - Обеспечено реактивное переключение языка при смене настроек и автоопределение системного языка браузера.
+- **Мультибраузерная сборка (Firefox & Chrome)**:
+  - В `wxt.config.ts` добавлена конфигурация `browser_specific_settings.gecko` с уникальным ID расширения (`youtube-autopilot@addon`).
+  - Добавлены npm-скрипты `build:firefox`, `zip:firefox`, `build:all` и `zip:all` для автоматической сборки под Chrome и Firefox.
+  - Сгенерированы производственные дистрибутивы Firefox: `.output/firefox-mv2`, `.output/youtube-autopilot-1.0.0-firefox.zip` (105.28 KB) и архив с исходниками `.output/youtube-autopilot-1.0.0-sources.zip` (для публикации в Mozilla AMO).
+  - Сгенерирован дистрибутив Chrome: `.output/chrome-mv3`, `.output/youtube-autopilot-1.0.0-chrome.zip` (105.29 KB).
 - **Исправления и UI/UX редизайн**:
   - **Устранение обрезки и переполнения виджета (`overlay.ts`)**: Выявлено, что глобальный CSS YouTube на классе `ytp-button` принудительно задавал `width: 36px` и `overflow: hidden`, что срезало текст инлайн-элементов. Класс `ytp-button` полностью удален из виджета.
   - **Нативная капсула 36px**: Элемент стилизован под нативные капсулы плеера YouTube 2026 (`height: 36px`, `border-radius: 18px`, `padding: 0 12px`, `white-space: nowrap !important`, `width: auto !important`). Виджет идеально интегрирован рядом со счетчиком времени `0:23 / 4:23`.

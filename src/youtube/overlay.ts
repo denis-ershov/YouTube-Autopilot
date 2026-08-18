@@ -1,16 +1,18 @@
 import { YOUTUBE_SELECTORS } from './selectors';
-import { formatSeconds } from '../i18n';
+import { formatSeconds, t } from '../i18n';
 
 export class YouTubePlayerOverlay {
   private container: HTMLElement | null = null;
   private cardPopover: HTMLElement | null = null;
 
-  public renderOrUpdate(watchedPercent: number, watchedSeconds: number, nextActionText: string = 'Like at 90%'): void {
+  public renderOrUpdate(watchedPercent: number, watchedSeconds: number, nextActionText?: string): void {
     if (!this.container || !document.contains(this.container)) {
       this.initContainer();
     }
 
     if (!this.container) return;
+
+    const actionText = nextActionText || t('player.likeAt', { percent: 90 });
 
     // 1. Компактное содержимое капсулы в строке плеера
     const buttonHtml = `
@@ -35,7 +37,7 @@ export class YouTubePlayerOverlay {
 
         <!-- Next Action Pill -->
         ${
-          nextActionText
+          actionText
             ? `
           <span style="display: inline-flex; align-items: center; gap: 3px; background: rgba(255, 78, 69, 0.18); color: #ff4e45; border: 1px solid rgba(255, 78, 69, 0.35); padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; line-height: 1; margin-left: 2px;">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="#ff4e45" stroke="#ff4e45" stroke-width="2" style="display: block;">
@@ -57,14 +59,14 @@ export class YouTubePlayerOverlay {
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #f4f4f5; font-size: 12px;">
             <span style="color: #3ea6ff;">🤖</span>
-            <span>YouTube Autopilot</span>
+            <span>${t('app.title')}</span>
           </div>
-          <span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 7px; border-radius: 9999px; font-weight: 500;">Active</span>
+          <span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 7px; border-radius: 9999px; font-weight: 500;">${t('player.active')}</span>
         </div>
 
         <div style="margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; font-size: 11px; color: #a1a1aa; margin-bottom: 4px;">
-            <span>Real Watch Progress</span>
+            <span>${t('player.realWatch')}</span>
             <span style="color: #3ea6ff; font-weight: 600;">${watchedPercent}%</span>
           </div>
           <div style="width: 100%; background: #27272a; height: 5px; border-radius: 9999px; overflow: hidden;">
@@ -73,8 +75,8 @@ export class YouTubePlayerOverlay {
         </div>
 
         <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #a1a1aa; border-top: 1px solid rgba(255, 255, 255, 0.1); pt: 6px; padding-top: 8px;">
-          <span>Watched: <b style="color: #f4f4f5;">${formatSeconds(watchedSeconds)}</b></span>
-          <span style="color: #ff4e45; font-weight: 600;">Next: ${nextActionText}</span>
+          <span>${t('player.watched')}: <b style="color: #f4f4f5;">${formatSeconds(watchedSeconds)}</b></span>
+          <span style="color: #ff4e45; font-weight: 600;">${t('player.next')}: ${actionText}</span>
         </div>
       `;
     }
@@ -89,7 +91,6 @@ export class YouTubePlayerOverlay {
     const targetParent = leftControls || rightControls;
     if (!targetParent) return;
 
-    // Создаем свой изолированный контейнер без класса ytp-button (чтобы YouTube CSS width: 36px не ломал верстку!)
     this.container = document.createElement('div');
     this.container.id = 'yt-autopilot-player-overlay';
     this.container.className = 'yt-autopilot-control-widget';
