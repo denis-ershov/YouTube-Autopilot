@@ -4,6 +4,7 @@ import { t, formatSeconds, setLanguage } from '../../src/i18n';
 import { getSettings, saveSettings } from '../../src/core/storage/storage';
 import { Settings as SettingsType } from '../../src/types/settings';
 import { VideoRecord } from '../../src/types/video';
+import { Logo } from '../../src/components/Logo';
 
 export default function App() {
   const [settings, setSettings] = useState<SettingsType | null>(null);
@@ -66,10 +67,8 @@ export default function App() {
     <div className="flex flex-col h-[480px] bg-zinc-950 text-zinc-100 p-4 select-none">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-        <div className="flex items-center space-x-2">
-          <div className="w-7 h-7 rounded-lg bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-brand-500">
-            🤖
-          </div>
+        <div className="flex items-center space-x-2.5">
+          <Logo size={32} />
           <div>
             <h1 className="text-sm font-semibold tracking-wide text-zinc-100">{t('app.title')}</h1>
             <p className="text-[10px] text-zinc-400">{t('app.subtitle')}</p>

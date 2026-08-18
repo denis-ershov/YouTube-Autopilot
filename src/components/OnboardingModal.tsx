@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, Shield, Heart, ArrowRight } from 'lucide-react';
 import { AutomationMode } from '../types/settings';
 import { t } from '../i18n';
+import { Logo } from './Logo';
 
 interface OnboardingModalProps {
   onComplete: (config: { threshold: number; mode: AutomationMode; automations: string[] }) => void;
@@ -39,9 +40,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
         {/* STEP 1: Welcome */}
         {step === 1 && (
           <div className="space-y-4 text-center py-4">
-            <div className="w-14 h-14 bg-brand-600/20 border border-brand-500/30 rounded-2xl flex items-center justify-center mx-auto text-3xl">
-              🤖
-            </div>
+            <Logo size={56} className="mx-auto" />
             <h2 className="text-xl font-bold text-zinc-100">{t('onboarding.welcomeTitle')}</h2>
             <p className="text-xs text-zinc-400 max-w-md mx-auto leading-relaxed">
               {t('onboarding.welcomeDesc')}

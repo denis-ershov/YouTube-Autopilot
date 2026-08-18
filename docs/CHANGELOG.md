@@ -24,6 +24,11 @@
   - `WatchLaterView`: Раздел менеджера списков Смотреть позже с фильтрацией по проценту просмотра.
   - `HistoryView`: Детализированный лог активности с фильтрами по статусам (All, Watched, Liked, Saved, Removed, Failed).
   - `Popup` & `Dashboard`: Обновленные мультиязычные интерфейсы.
+- **Логотип и иконки расширения**:
+  - Создан векторный логотип (`icon.svg`, `Logo.tsx`) в фирменном неоновом стиле (кибер-робот с кнопкой воспроизведения YouTube Play и индикаторами нейросети).
+  - Сгенерированы наборы растровых иконок высокого разрешения со сглаживанием Lanczos: `icon-16.png`, `icon-32.png`, `icon-48.png`, `icon-128.png`, `icon-512.png` и `logo.png`.
+  - Зарегистрированы иконки в манифесте браузеров (`icons` и `action.default_icon`) в `wxt.config.ts`.
+  - Обновлены интерфейсы `Popup`, `Dashboard` и `OnboardingModal` для отображения официального векторного логотипа.
 - **Глобальная проверка и 100% локализация**:
   - Все хардкод-строки в `OnboardingModal.tsx`, `Dashboard/App.tsx`, `Popup/App.tsx`, `YouTubePlayerOverlay.ts` и `content.ts` переведены на словарную систему i18n `t(...)`.
   - Расширены словари `ru.json` и `en.json` (разделы `common`, `onboarding`, `popup`, `dashboard`, `player`, `approval`).

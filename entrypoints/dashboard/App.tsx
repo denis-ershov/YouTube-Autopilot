@@ -22,6 +22,7 @@ import { Settings as SettingsType, LanguageCode, WatchTrackingMode, AutomationMo
 import { Rule, ActionType } from '../../src/types/rules';
 import { VideoRecord } from '../../src/types/video';
 import { OnboardingModal } from '../../src/components/OnboardingModal';
+import { Logo } from '../../src/components/Logo';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'history' | 'watchLater' | 'settings'>('overview');
@@ -175,9 +176,7 @@ export default function App() {
       <aside className="w-full md:w-64 bg-zinc-900/60 border-b md:border-b-0 md:border-r border-zinc-800 p-4 flex flex-col justify-between shrink-0">
         <div>
           <div className="flex items-center space-x-3 px-2 py-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-brand-600/20 border border-brand-500/30 flex items-center justify-center text-xl shadow-lg shadow-brand-900/30">
-              🤖
-            </div>
+            <Logo size={36} />
             <div>
               <h1 className="text-base font-semibold text-zinc-100">{t('app.title')}</h1>
               <p className="text-xs text-zinc-400">{t('app.version')}</p>
