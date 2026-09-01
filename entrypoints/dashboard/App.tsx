@@ -14,12 +14,17 @@ import {
   Bookmark,
   AlertTriangle,
   Filter,
+  Shield,
+  Zap,
+  FastForward,
+  Timer,
+  Check,
 } from 'lucide-react';
 import { t, formatSeconds, setLanguage } from '../../src/i18n';
 import { getSettings, saveSettings, getRules, saveRule, deleteRule, DEFAULT_PRESET_RULES } from '../../src/core/storage/storage';
-import { getAllVideos } from '../../src/database/indexeddb';
+import { getAllVideos, getAllRuleExecutions } from '../../src/database/indexeddb';
 import { Settings as SettingsType, LanguageCode, WatchTrackingMode, AutomationMode } from '../../src/types/settings';
-import { Rule, ActionType } from '../../src/types/rules';
+import { Rule, ActionType, RuleExecution } from '../../src/types/rules';
 import { VideoRecord } from '../../src/types/video';
 import { OnboardingModal } from '../../src/components/OnboardingModal';
 import { Logo } from '../../src/components/Logo';
@@ -29,6 +34,7 @@ export default function App() {
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [rules, setRules] = useState<Rule[]>([]);
   const [videos, setVideos] = useState<VideoRecord[]>([]);
+  const [ruleExecutions, setRuleExecutions] = useState<RuleExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -43,6 +49,7 @@ export default function App() {
   const [newRuleName, setNewRuleName] = useState('');
   const [newRuleThreshold, setNewRuleThreshold] = useState(90);
   const [newRuleAction, setNewRuleAction] = useState<ActionType>('LIKE_VIDEO');
+  const [newRuleConditionType, setNewRuleConditionType] = useState<'WATCHED_PERCENT' | 'TIMELINE_PERCENT'>('WATCHED_PERCENT');
 
   useEffect(() => {
     loadAllData();
@@ -50,12 +57,17 @@ export default function App() {
 
   const loadAllData = async () => {
     setLoading(true);
-    const s = await getSettings();
-    const r = await getRules();
-    const v = await getAllVideos();
+    const [s, r, v, executions] = await Promise.all([
+      getSettings(),
+      getRules(),
+      getAllVideos(),
+      getAllRuleExecutions(),
+    ]);
+
     setSettings(s);
     setRules(r);
     setVideos(v);
+    setRuleExecutions(executions);
 
     if (s?.language) {
       setLanguage(s.language);
@@ -72,12 +84,18 @@ export default function App() {
     setLoading(false);
   };
 
-  const handleOnboardingComplete = async (config: { threshold: number; mode: AutomationMode; automations: string[] }) => {
+  const handleOnboardingComplete = async (config: {
+    threshold: number;
+    mode: AutomationMode;
+    automations: string[];
+    watchMode: WatchTrackingMode;
+  }) => {
     if (!settings) return;
     const updated = {
       ...settings,
       defaultThreshold: config.threshold,
       automationMode: config.mode,
+      watchMode: config.watchMode || settings.watchMode,
     };
     await saveSettings(updated);
     setSettings(updated);
@@ -110,7 +128,13 @@ export default function App() {
   };
 
   const handleAddPresetRule = async (preset: Rule) => {
-    await saveRule(preset);
+    const localizedName = t(`presets.${preset.name}` as any) || preset.name;
+    const ruleToSave = {
+      ...preset,
+      id: `rule-${Date.now()}`,
+      name: localizedName,
+    };
+    await saveRule(ruleToSave);
     const r = await getRules();
     setRules(r);
   };
@@ -125,7 +149,7 @@ export default function App() {
       enabled: true,
       conditions: [
         {
-          type: 'WATCHED_PERCENT',
+          type: newRuleConditionType,
           operator: 'GTE',
           value: newRuleThreshold,
         },
@@ -155,11 +179,14 @@ export default function App() {
     );
   }
 
-  // Расчет статистики
+  // Расчет реальной статистики из базы данных
   const totalWatchedSec = videos.reduce((sum, v) => sum + (v.watchedSeconds || 0), 0);
   const completedCount = videos.filter((v) => (v.watchedPercent || 0) >= 90).length;
+  const successfulExecutions = ruleExecutions.filter((e) => e.status === 'success');
+  const successfulLikes = ruleExecutions.filter((e) => e.action === 'LIKE_VIDEO' && e.status === 'success');
+  const actualLikesCount = successfulLikes.length > 0 ? successfulLikes.length : videos.filter((v) => v.liked).length;
 
-  // Фильтрованные видео
+  // Фильтрованные видео для истории
   const filteredVideos = videos.filter((v) => {
     if (historyFilter === 'completed') return (v.watchedPercent || 0) >= 90;
     if (historyFilter === 'liked') return v.liked;
@@ -173,13 +200,13 @@ export default function App() {
       {showOnboarding && <OnboardingModal onComplete={handleOnboardingComplete} />}
 
       {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 bg-zinc-900/60 border-b md:border-b-0 md:border-r border-zinc-800 p-4 flex flex-col justify-between shrink-0">
+      <aside className="w-full md:w-64 bg-zinc-900/70 border-b md:border-b-0 md:border-r border-zinc-800 p-4 flex flex-col justify-between shrink-0">
         <div>
           <div className="flex items-center space-x-3 px-2 py-3 mb-6">
             <Logo size={36} />
             <div>
               <h1 className="text-base font-semibold text-zinc-100">{t('app.title')}</h1>
-              <p className="text-xs text-zinc-400">{t('app.version')}</p>
+              <p className="text-[11px] text-zinc-400">{t('app.version')}</p>
             </div>
           </div>
 
@@ -246,21 +273,47 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Footer Language Selector */}
-        <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between px-2">
-          <div className="flex items-center space-x-2 text-xs text-zinc-400">
-            <Globe className="w-4 h-4 text-zinc-400" />
-            <span>{t('dashboard.settings.language')}</span>
+        {/* Footer Language Selector (Pill Switcher - Pixel Perfect, Zero Overflow) */}
+        <div className="pt-3.5 pb-1 border-t border-zinc-800/80 mt-auto">
+          <div className="flex items-center space-x-1.5 px-1 mb-2 text-xs text-zinc-400 font-medium">
+            <Globe className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            <span className="whitespace-nowrap">{t('dashboard.settings.language')}</span>
           </div>
-          <select
-            value={settings.language}
-            onChange={(e) => handleUpdateSettings({ language: e.target.value as LanguageCode })}
-            className="bg-zinc-800 border border-zinc-700 text-xs rounded-md px-2 py-1 text-zinc-200 focus:outline-none focus:border-brand-500"
-          >
-            <option value="auto">{t('dashboard.settings.langAuto')}</option>
-            <option value="ru">{t('dashboard.settings.langRu')}</option>
-            <option value="en">{t('dashboard.settings.langEn')}</option>
-          </select>
+          <div className="grid grid-cols-3 gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-[11px] font-medium">
+            <button
+              type="button"
+              onClick={() => handleUpdateSettings({ language: 'auto' })}
+              className={`py-1 rounded-md text-center transition-all ${
+                settings.language === 'auto'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+              }`}
+            >
+              {t('dashboard.settings.langAuto')}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleUpdateSettings({ language: 'ru' })}
+              className={`py-1 rounded-md text-center transition-all ${
+                settings.language === 'ru'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+              }`}
+            >
+              RU
+            </button>
+            <button
+              type="button"
+              onClick={() => handleUpdateSettings({ language: 'en' })}
+              className={`py-1 rounded-md text-center transition-all ${
+                settings.language === 'en'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700 font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+              }`}
+            >
+              EN
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -296,7 +349,9 @@ export default function App() {
                   <span>{t('dashboard.overview.actionsExecuted')}</span>
                   <Sparkles className="w-4 h-4 text-amber-400" />
                 </div>
-                <p className="text-2xl font-bold text-zinc-100">{rules.length * 2}</p>
+                <p className="text-2xl font-bold text-zinc-100">
+                  {successfulExecutions.length > 0 ? successfulExecutions.length : rules.filter((r) => r.enabled).length}
+                </p>
               </div>
 
               <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl space-y-2">
@@ -304,7 +359,7 @@ export default function App() {
                   <span>{t('dashboard.overview.likesGiven')}</span>
                   <Heart className="w-4 h-4 text-rose-400" />
                 </div>
-                <p className="text-2xl font-bold text-zinc-100">{completedCount}</p>
+                <p className="text-2xl font-bold text-zinc-100">{actualLikesCount}</p>
               </div>
             </div>
           </div>
@@ -334,15 +389,18 @@ export default function App() {
                 <span>{t('dashboard.rules.presets')}</span>
               </span>
               <div className="flex flex-wrap gap-2">
-                {DEFAULT_PRESET_RULES.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => handleAddPresetRule(preset)}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    + {preset.name}
-                  </button>
-                ))}
+                {DEFAULT_PRESET_RULES.map((preset) => {
+                  const localizedPresetName = t(`presets.${preset.name}` as any) || preset.name;
+                  return (
+                    <button
+                      key={preset.id}
+                      onClick={() => handleAddPresetRule(preset)}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      + {localizedPresetName}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -357,8 +415,8 @@ export default function App() {
                   <span>{t('dashboard.rules.newRuleTitle')}</span>
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="md:col-span-1">
                     <label className="block text-xs font-medium text-zinc-400 mb-1">{t('dashboard.rules.ruleName')}</label>
                     <input
                       type="text"
@@ -368,6 +426,18 @@ export default function App() {
                       onChange={(e) => setNewRuleName(e.target.value)}
                       className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1">{t('dashboard.settings.watchMode')}</label>
+                    <select
+                      value={newRuleConditionType}
+                      onChange={(e) => setNewRuleConditionType(e.target.value as any)}
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="WATCHED_PERCENT">{t('onboarding.trackModeReal')}</option>
+                      <option value="TIMELINE_PERCENT">{t('onboarding.trackModePosition')}</option>
+                    </select>
                   </div>
 
                   <div>
@@ -422,52 +492,61 @@ export default function App() {
                   {t('dashboard.rules.empty')}
                 </div>
               ) : (
-                rules.map((rule) => (
-                  <div
-                    key={rule.id}
-                    className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between hover:border-zinc-700 transition-all"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-sm text-zinc-100">{rule.name}</span>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                rules.map((rule) => {
+                  const cond = rule.conditions[0];
+                  const condTypeLabel = cond?.type === 'TIMELINE_PERCENT'
+                    ? t('dashboard.history.maxTimeline')
+                    : t('dashboard.history.real');
+
+                  return (
+                    <div
+                      key={rule.id}
+                      className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between hover:border-zinc-700 transition-all"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-sm text-zinc-100">{rule.name}</span>
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                              rule.enabled
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-zinc-800 text-zinc-500'
+                            }`}
+                          >
+                            {rule.enabled ? t('common.active') : t('common.disabled')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-400">
+                          <span className="text-brand-400 font-medium">{t('dashboard.rules.when')}</span>{' '}
+                          {condTypeLabel} ≥ {String(cond?.value ?? 90)}%{' '}
+                          <span className="text-brand-400 font-medium">{t('dashboard.rules.then')}</span>{' '}
+                          {t(`common.actions.${rule.actions[0]?.type}` as any) || rule.actions[0]?.type}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-3">
+                        <button
+                          onClick={() => handleToggleRule(rule)}
+                          className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
                             rule.enabled
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-zinc-800 text-zinc-500'
+                              ? 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300'
+                              : 'bg-brand-600/20 text-brand-400 border-brand-500/30 hover:bg-brand-600/30'
                           }`}
                         >
-                          {rule.enabled ? t('common.active') : t('common.disabled')}
-                        </span>
+                          {rule.enabled ? t('dashboard.rules.disable') : t('dashboard.rules.enable')}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteRule(rule.id)}
+                          className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                          aria-label={t('common.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <p className="text-xs text-zinc-400">
-                        <span className="text-brand-400 font-medium">{t('dashboard.rules.when')}</span> {t('dashboard.rules.watchedCondition', { threshold: String(rule.conditions[0]?.value ?? '') })} <span className="text-brand-400 font-medium">{t('dashboard.rules.then')}</span>{' '}
-                        {t(`common.actions.${rule.actions[0]?.type}` as any) || rule.actions[0]?.type}
-                      </p>
                     </div>
-
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => handleToggleRule(rule)}
-                        className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors ${
-                          rule.enabled
-                            ? 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-300'
-                            : 'bg-brand-600/20 text-brand-400 border-brand-500/30 hover:bg-brand-600/30'
-                        }`}
-                      >
-                        {rule.enabled ? t('dashboard.rules.disable') : t('dashboard.rules.enable')}
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteRule(rule.id)}
-                        className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        aria-label={t('common.delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -549,15 +628,24 @@ export default function App() {
                     className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex items-center justify-between hover:border-zinc-700 transition-all"
                   >
                     <div className="space-y-1">
-                      <h3 className="text-xs font-semibold text-zinc-100">{video.title}</h3>
-                      <p className="text-[11px] text-zinc-400">
-                        {video.channelName || t('dashboard.history.creatorDefault')} • {t('dashboard.history.duration')}: {formatSeconds(video.duration)}
-                      </p>
+                      <h3 className="text-xs font-semibold text-zinc-100 line-clamp-1">{video.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-400">
+                        <span>{video.channelName || t('dashboard.history.creatorDefault')}</span>
+                        <span>•</span>
+                        <span>{t('dashboard.history.duration')}: {formatSeconds(video.duration)}</span>
+                        {video.liked && (
+                          <span className="text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded text-[10px]">
+                            ❤️ {t('dashboard.history.liked')}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="text-right space-y-1">
+                    <div className="text-right space-y-1 shrink-0 ml-4">
                       <span className="text-xs font-bold text-brand-400">{video.watchedPercent}%</span>
-                      <p className="text-[10px] text-zinc-500">{t('dashboard.history.real')}: {formatSeconds(video.watchedSeconds)}</p>
+                      <p className="text-[10px] text-zinc-500">
+                        {t('dashboard.history.real')}: {formatSeconds(video.realWatchedSeconds ?? video.watchedSeconds)}
+                      </p>
                     </div>
                   </div>
                 ))
@@ -566,61 +654,157 @@ export default function App() {
           </div>
         )}
 
-        {/* SETTINGS TAB */}
+        {/* SETTINGS TAB (Redesigned with Modern Interactive Cards) */}
         {activeTab === 'settings' && (
-          <div className="space-y-6 max-w-3xl">
+          <div className="space-y-8 max-w-3xl">
             <div>
               <h2 className="text-xl font-bold text-zinc-100">{t('dashboard.settings.title')}</h2>
               <p className="text-xs text-zinc-400 mt-1">{t('dashboard.settings.subtitle')}</p>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-6">
-              {/* Watch Tracking Mode */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-200 block">
-                  {t('dashboard.settings.watchMode')}
-                </label>
-                <select
-                  value={settings.watchMode}
-                  onChange={(e) => handleUpdateSettings({ watchMode: e.target.value as WatchTrackingMode })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
-                >
-                  <option value="real">{t('dashboard.settings.watchModeReal')}</option>
-                  <option value="position">{t('dashboard.settings.watchModePosition')}</option>
-                  <option value="hybrid">{t('dashboard.settings.watchModeHybrid')}</option>
-                </select>
+            {/* WATCH TRACKING MODES */}
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200">{t('dashboard.settings.watchMode')}</h3>
+                <p className="text-xs text-zinc-400 mt-0.5">{t('dashboard.settings.watchModeSubtitle')}</p>
               </div>
 
-              {/* Automation Mode */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-200 block">
-                  {t('dashboard.settings.automationMode')}
-                </label>
-                <select
-                  value={settings.automationMode}
-                  onChange={(e) => handleUpdateSettings({ automationMode: e.target.value as AutomationMode })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
+              <div className="grid grid-cols-1 gap-3">
+                {/* 1. Real Watch Mode */}
+                <div
+                  onClick={() => handleUpdateSettings({ watchMode: 'real' })}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    settings.watchMode === 'real'
+                      ? 'bg-brand-600/10 border-brand-500/50 shadow-md shadow-brand-950/30'
+                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                  }`}
                 >
-                  <option value="approval">{t('dashboard.settings.modeApproval')}</option>
-                  <option value="automatic">{t('dashboard.settings.modeAuto')}</option>
-                  <option value="disabled">{t('dashboard.settings.modeDisabled')}</option>
-                </select>
-              </div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${settings.watchMode === 'real' ? 'bg-brand-500/20 text-brand-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                        <Timer className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-xs font-semibold text-zinc-100">{t('dashboard.settings.watchModeReal')}</h4>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-medium">
+                            {t('onboarding.trackModeReal')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                          {t('dashboard.settings.watchModeRealDesc')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${settings.watchMode === 'real' ? 'border-brand-500 bg-brand-500 text-white' : 'border-zinc-700'}`}>
+                      {settings.watchMode === 'real' && <Check className="w-3 h-3" />}
+                    </div>
+                  </div>
+                </div>
 
-              {/* Language Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-zinc-200 block">
-                  {t('dashboard.settings.language')}
-                </label>
-                <select
-                  value={settings.language}
-                  onChange={(e) => handleUpdateSettings({ language: e.target.value as LanguageCode })}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-2.5 text-xs text-zinc-100 focus:outline-none focus:border-brand-500"
+                {/* 2. Position / Seek Mode */}
+                <div
+                  onClick={() => handleUpdateSettings({ watchMode: 'position' })}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    settings.watchMode === 'position'
+                      ? 'bg-brand-600/10 border-brand-500/50 shadow-md shadow-brand-950/30'
+                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                  }`}
                 >
-                  <option value="auto">{t('dashboard.settings.langAuto')}</option>
-                  <option value="ru">{t('dashboard.settings.langRu')}</option>
-                  <option value="en">{t('dashboard.settings.langEn')}</option>
-                </select>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${settings.watchMode === 'position' ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                        <FastForward className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-xs font-semibold text-zinc-100">{t('dashboard.settings.watchModePosition')}</h4>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 font-medium">
+                            ⚡ {t('onboarding.trackModePosition')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                          {t('dashboard.settings.watchModePositionDesc')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${settings.watchMode === 'position' ? 'border-brand-500 bg-brand-500 text-white' : 'border-zinc-700'}`}>
+                      {settings.watchMode === 'position' && <Check className="w-3 h-3" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Hybrid Mode */}
+                <div
+                  onClick={() => handleUpdateSettings({ watchMode: 'hybrid' })}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    settings.watchMode === 'hybrid'
+                      ? 'bg-brand-600/10 border-brand-500/50 shadow-md shadow-brand-950/30'
+                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${settings.watchMode === 'hybrid' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                        <Zap className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-xs font-semibold text-zinc-100">{t('dashboard.settings.watchModeHybrid')}</h4>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium">
+                            🌟 {t('popup.watchModeBadge.hybrid')}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                          {t('dashboard.settings.watchModeHybridDesc')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${settings.watchMode === 'hybrid' ? 'border-brand-500 bg-brand-500 text-white' : 'border-zinc-700'}`}>
+                      {settings.watchMode === 'hybrid' && <Check className="w-3 h-3" />}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AUTOMATION MODE */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-zinc-200">{t('dashboard.settings.automationMode')}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div
+                  onClick={() => handleUpdateSettings({ automationMode: 'approval' })}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    settings.automationMode === 'approval'
+                      ? 'bg-brand-600/10 border-brand-500/50'
+                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Shield className="w-5 h-5 text-emerald-400" />
+                    <div>
+                      <h4 className="text-xs font-semibold text-zinc-100">{t('dashboard.settings.modeApproval')}</h4>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">{t('onboarding.approvalDesc')}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => handleUpdateSettings({ automationMode: 'automatic' })}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                    settings.automationMode === 'automatic'
+                      ? 'bg-brand-600/10 border-brand-500/50'
+                      : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Sparkles className="w-5 h-5 text-brand-400" />
+                    <div>
+                      <h4 className="text-xs font-semibold text-zinc-100">{t('dashboard.settings.modeAuto')}</h4>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">{t('onboarding.autoDesc')}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

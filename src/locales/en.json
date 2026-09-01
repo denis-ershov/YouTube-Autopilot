@@ -2,7 +2,7 @@
   "app": {
     "title": "YouTube Autopilot",
     "subtitle": "Smart YouTube Workflow Automation",
-    "version": "v1.0.0 • Smart Automation",
+    "version": "v1.1.0 • Smart Automation",
     "statusActive": "Autopilot Active",
     "statusPaused": "Autopilot Disabled"
   },
@@ -10,6 +10,8 @@
     "loading": "Loading...",
     "active": "Active",
     "disabled": "Disabled",
+    "on": "ON",
+    "off": "OFF",
     "cancel": "Cancel",
     "back": "Back",
     "continue": "Continue",
@@ -39,7 +41,13 @@
     "approvalTitle": "Ask before action (Recommended)",
     "approvalDesc": "Shows a quick approval banner on YouTube with confirmation",
     "autoTitle": "Automatic execution",
-    "autoDesc": "Executes actions in background silently without popups"
+    "autoDesc": "Executes actions in background silently without popups",
+    "trackModeTitle": "Watch Tracking Mode",
+    "trackModeDesc": "How the extension determines video completion percentage",
+    "trackModeReal": "Real Time (intervals)",
+    "trackModeRealDesc": "Only counts seconds actually watched on screen without skips",
+    "trackModePosition": "With Seeking (by timeline scrubber)",
+    "trackModePositionDesc": "Like triggers when scrubber crosses 90% (even if skipped)"
   },
   "popup": {
     "currentVideo": "Current Video",
@@ -55,7 +63,13 @@
     "mode": "MODE",
     "total": "Total",
     "loading": "Loading YouTube Autopilot...",
-    "likeAt": "Like at {{percent}}%"
+    "likeAt": "Like at {{percent}}%",
+    "switchLanguage": "Switch Language",
+    "watchModeBadge": {
+      "real": "REAL",
+      "position": "TIMELINE",
+      "hybrid": "HYBRID"
+    }
   },
   "dashboard": {
     "nav": {
@@ -114,21 +128,26 @@
       "empty": "No watch history recorded yet. Open YouTube to start tracking!",
       "creatorDefault": "YouTube Creator",
       "duration": "Duration",
-      "real": "Real"
+      "real": "Real",
+      "maxTimeline": "Timeline"
     },
     "settings": {
       "title": "Settings",
       "subtitle": "Extension behavior and automation modes",
       "watchMode": "Watch Tracking Mode",
-      "watchModeReal": "Real Watched Time (Interval tracking)",
-      "watchModePosition": "Position Based (currentTime / duration)",
-      "watchModeHybrid": "Hybrid (Threshold detection)",
+      "watchModeSubtitle": "Determines how video progress is calculated and when automations trigger",
+      "watchModeReal": "Real Time (actual watch time only)",
+      "watchModeRealDesc": "Only counts seconds actually watched on screen. Skipping forward or backward is not counted. Bulletproof protection against accidental likes.",
+      "watchModePosition": "With Seeking (by timeline / scrubber position)",
+      "watchModePositionDesc": "Auto Like triggers once the scrubber crosses the threshold (e.g. 90%). If you watch the intro, skip to middle and end, the action will trigger.",
+      "watchModeHybrid": "Hybrid Mode (threshold + minimum watch time)",
+      "watchModeHybridDesc": "Requires scrubber to cross threshold (90%) AND at least 15% of the video duration (or 30s) to be genuinely watched. Perfect balance.",
       "automationMode": "Automation Mode",
       "modeAuto": "Automatic execution",
       "modeApproval": "Ask before action (Recommended)",
       "modeDisabled": "Disabled",
       "language": "Interface Language",
-      "langAuto": "Auto (Browser)",
+      "langAuto": "Auto",
       "langRu": "Русский",
       "langEn": "English",
       "saveSuccess": "Settings saved successfully"
@@ -142,7 +161,8 @@
     "likeAt": "Like at {{percent}}%"
   },
   "presets": {
-    "likeCompleted": "❤️ Like completed videos",
+    "likeCompleted": "❤️ Auto Like completed videos (90% real watch)",
+    "likeCompletedTimeline": "⚡ Auto Like with seek (scrubber ≥ 90%)",
     "cleanWatchLater": "🧹 Clean Watch Later list",
     "favoriteCreators": "👤 Support favorite creators"
   },

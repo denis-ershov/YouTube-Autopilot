@@ -11,7 +11,7 @@ export default defineConfig({
   manifest: {
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
-    permissions: ['storage'],
+    permissions: ['storage', 'activeTab'],
     host_permissions: ['https://*.youtube.com/*'],
     default_locale: 'en',
     icons: {

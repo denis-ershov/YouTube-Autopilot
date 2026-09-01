@@ -1,6 +1,6 @@
 /**
-  * Отражает 1 конкретный просмотренный интервал времени [startInSec, endInSec]
-  */
+ * Отражает 1 конкретный просмотренный интервал времени [startInSec, endInSec]
+ */
 export type WatchInterval = [number, number];
 
 export enum VideoSource {
@@ -33,8 +33,14 @@ export interface VideoRecord {
 
   duration: number; // Общая продолжительность в секундах
 
-  watchedSeconds: number; // Решение на основе суммы просмотренных интервалов
-  watchedPercent: number; // Фактический процент (0-100)
+  watchedSeconds: number; // Рассчитанные секунды на основе активного режима
+  watchedPercent: number; // Рассчитанный процент (0-100)
+
+  realWatchedSeconds?: number; // Строго фактически просмотренное время без перемоток
+  realWatchedPercent?: number; // Процент строго фактического просмотра
+
+  maxPositionSeconds?: number; // Максимальная достигнутая позиция ползунка на таймлайне
+  maxTimelinePercent?: number; // Максимальный процент по позиции ползунка (0-100)
 
   intervals: WatchInterval[]; // Сохраненные непересекающиеся интервалы
 

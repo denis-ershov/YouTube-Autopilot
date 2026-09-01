@@ -82,3 +82,8 @@ export async function isRuleActionExecuted(videoId: string, ruleId: string, acti
     (e) => e.ruleId === ruleId && e.action === action && e.status === 'success'
   );
 }
+
+export async function getAllRuleExecutions(): Promise<RuleExecution[]> {
+  const db = await getDB();
+  return db.getAll('rule_executions');
+}

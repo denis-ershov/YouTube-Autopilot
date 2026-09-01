@@ -15,6 +15,8 @@ export type ExtensionMessageType =
   | 'GET_RULES'
   | 'SAVE_RULE'
   | 'DELETE_RULE'
+  | 'CHECK_RULE_EXECUTED'
+  | 'GET_VIDEO_RECORD'
   | 'APPROVE_ACTION'
   | 'REJECT_ACTION'
   | 'SHOW_APPROVAL_MODAL';
@@ -37,6 +39,10 @@ export interface ProgressUpdatePayload {
   videoId: string;
   watchedSeconds: number;
   watchedPercent: number;
+  realWatchedSeconds?: number;
+  realWatchedPercent?: number;
+  maxPositionSeconds?: number;
+  maxTimelinePercent?: number;
   intervals: [number, number][];
 }
 

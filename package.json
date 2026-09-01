@@ -1,6 +1,6 @@
 {
   "name": "youtube-autopilot",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "YouTube Workflow Automation Extension with Real Watch Tracking",
   "type": "module",
   "private": true,

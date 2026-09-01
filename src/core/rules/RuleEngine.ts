@@ -17,6 +17,12 @@ export class RuleEngine {
       case 'WATCHED_PERCENT':
         return this.compareNumeric(video.watchedPercent, operator, Number(value));
 
+      case 'TIMELINE_PERCENT':
+        return this.compareNumeric(video.maxTimelinePercent ?? video.watchedPercent, operator, Number(value));
+
+      case 'REAL_WATCHED_PERCENT':
+        return this.compareNumeric(video.realWatchedPercent ?? video.watchedPercent, operator, Number(value));
+
       case 'WATCHED_SECONDS':
         return this.compareNumeric(video.watchedSeconds, operator, Number(value));
 

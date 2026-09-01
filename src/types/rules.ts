@@ -1,5 +1,7 @@
 export type ConditionType =
   | 'WATCHED_PERCENT'
+  | 'TIMELINE_PERCENT'
+  | 'REAL_WATCHED_PERCENT'
   | 'WATCHED_SECONDS'
   | 'VIDEO_DURATION'
   | 'CHANNEL'

@@ -1,9 +1,18 @@
 import { defineBackground } from 'wxt/sandbox';
 import { getSettings, saveSettings, getRules, saveRule, deleteRule } from '../src/core/storage/storage';
-import { saveVideoRecord, getVideoRecord, saveRuleExecution } from '../src/database/indexeddb';
+import {
+  saveVideoRecord,
+  getVideoRecord,
+  saveRuleExecution,
+  isRuleActionExecuted,
+} from '../src/database/indexeddb';
 import { ExtensionMessage, ProgressUpdatePayload, VideoStartedPayload } from '../src/types/messages';
 import { VideoRecord } from '../src/types/video';
 
+/**
+ * Фоновый Service Worker расширения YouTube Autopilot.
+ * Централизованный координатор данных, хранилища IndexedDB и событий.
+ */
 export default defineBackground(() => {
   console.log('[YouTube Autopilot] Background Service Worker Initialized');
 
@@ -13,7 +22,7 @@ export default defineBackground(() => {
       .then((response) => sendResponse(response))
       .catch((err) => {
         console.error('[YouTube Autopilot] Error handling message:', err);
-        sendResponse({ success: false, error: err.message });
+        sendResponse({ success: false, error: err?.message || 'Unknown error' });
       });
     return true; // Асинхронный ответ
   });
@@ -56,7 +65,7 @@ async function handleMessage(message: ExtensionMessage, sender: chrome.runtime.M
           url: payload.url,
           title: payload.title,
           channelName: payload.channelName,
-          duration: payload.duration,
+          duration: payload.duration || 0,
           watchedSeconds: 0,
           watchedPercent: 0,
           intervals: [],
@@ -69,7 +78,9 @@ async function handleMessage(message: ExtensionMessage, sender: chrome.runtime.M
         video.lastWatchedAt = Date.now();
         video.updatedAt = Date.now();
         if (payload.duration > 0) video.duration = payload.duration;
-        if (payload.title) video.title = payload.title;
+        if (payload.title && payload.title !== 'YouTube Video') video.title = payload.title;
+        if (payload.channelName) video.channelName = payload.channelName;
+        if (payload.url) video.url = payload.url;
       }
 
       await saveVideoRecord(video);
@@ -78,10 +89,29 @@ async function handleMessage(message: ExtensionMessage, sender: chrome.runtime.M
 
     case 'PROGRESS_UPDATE': {
       const payload = message.payload as ProgressUpdatePayload;
-      const video = await getVideoRecord(payload.videoId);
-      if (video) {
+      let video = await getVideoRecord(payload.videoId);
+
+      if (!video) {
+        video = {
+          id: payload.videoId,
+          url: `https://www.youtube.com/watch?v=${payload.videoId}`,
+          title: 'YouTube Video',
+          duration: 0,
+          watchedSeconds: payload.watchedSeconds,
+          watchedPercent: payload.watchedPercent,
+          intervals: payload.intervals,
+          firstWatchedAt: Date.now(),
+          lastWatchedAt: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+      } else {
         video.watchedSeconds = payload.watchedSeconds;
         video.watchedPercent = payload.watchedPercent;
+        if (typeof payload.realWatchedSeconds === 'number') video.realWatchedSeconds = payload.realWatchedSeconds;
+        if (typeof payload.realWatchedPercent === 'number') video.realWatchedPercent = payload.realWatchedPercent;
+        if (typeof payload.maxPositionSeconds === 'number') video.maxPositionSeconds = payload.maxPositionSeconds;
+        if (typeof payload.maxTimelinePercent === 'number') video.maxTimelinePercent = payload.maxTimelinePercent;
         video.intervals = payload.intervals;
         video.lastWatchedAt = Date.now();
         video.updatedAt = Date.now();
@@ -89,10 +119,16 @@ async function handleMessage(message: ExtensionMessage, sender: chrome.runtime.M
         if (video.watchedPercent >= 90 && !video.completedAt) {
           video.completedAt = Date.now();
         }
-
-        await saveVideoRecord(video);
       }
+
+      await saveVideoRecord(video);
       return { success: true };
+    }
+
+    case 'CHECK_RULE_EXECUTED': {
+      const { videoId, ruleId, action } = message.payload as any;
+      const executed = await isRuleActionExecuted(videoId, ruleId, action);
+      return { success: true, executed };
     }
 
     case 'ACTION_EXECUTED_LOG': {

@@ -13,6 +13,7 @@ export interface Settings {
   shortsEnabled: boolean;
   automationMode: AutomationMode;
   language: LanguageCode;
+  autoLikeOnFastForward?: boolean; // Ставить лайк при перемотке, если ползунок пересек порог
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -24,4 +25,5 @@ export const DEFAULT_SETTINGS: Settings = {
   shortsEnabled: true,
   automationMode: 'approval', // Сначала спрашивать пользователя
   language: 'auto',
+  autoLikeOnFastForward: true,
 };

@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
-import { Sparkles, CheckCircle2, Shield, Heart, ArrowRight } from 'lucide-react';
-import { AutomationMode } from '../types/settings';
+import { Sparkles, CheckCircle2, Shield, Heart, ArrowRight, FastForward, Timer } from 'lucide-react';
+import { AutomationMode, WatchTrackingMode } from '../types/settings';
 import { t } from '../i18n';
 import { Logo } from './Logo';
 
 interface OnboardingModalProps {
-  onComplete: (config: { threshold: number; mode: AutomationMode; automations: string[] }) => void;
+  onComplete: (config: {
+    threshold: number;
+    mode: AutomationMode;
+    automations: string[];
+    watchMode: WatchTrackingMode;
+  }) => void;
 }
 
 export function OnboardingModal({ onComplete }: OnboardingModalProps) {
   const [step, setStep] = useState(1);
   const [threshold, setThreshold] = useState(90);
+  const [watchMode, setWatchMode] = useState<WatchTrackingMode>('position');
   const [mode, setMode] = useState<AutomationMode>('approval');
   const [automations, setAutomations] = useState<string[]>(['like', 'watchLater', 'realWatch']);
 
@@ -22,7 +28,7 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
     if (step < 4) {
       setStep(step + 1);
     } else {
-      onComplete({ threshold, mode, automations });
+      onComplete({ threshold, mode, automations, watchMode });
     }
   };
 
@@ -101,12 +107,14 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
           </div>
         )}
 
-        {/* STEP 3: Completion Threshold */}
+        {/* STEP 3: Completion Threshold & Track Mode */}
         {step === 3 && (
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-zinc-100">{t('onboarding.thresholdTitle')}</h2>
-            <p className="text-xs text-zinc-400">{t('onboarding.thresholdDesc')}</p>
-            
+            <div>
+              <h2 className="text-base font-bold text-zinc-100">{t('onboarding.thresholdTitle')}</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">{t('onboarding.thresholdDesc')}</p>
+            </div>
+
             <div className="bg-zinc-800/60 p-4 rounded-xl border border-zinc-700/50 space-y-3">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-zinc-400">{t('onboarding.thresholdLabel')}</span>
@@ -121,6 +129,41 @@ export function OnboardingModal({ onComplete }: OnboardingModalProps) {
                 onChange={(e) => setThreshold(Number(e.target.value))}
                 className="w-full accent-brand-500 cursor-pointer"
               />
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <p className="text-xs font-semibold text-zinc-300">{t('onboarding.trackModeTitle')}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div
+                  onClick={() => setWatchMode('position')}
+                  className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start space-x-2.5 ${
+                    watchMode === 'position'
+                      ? 'bg-brand-600/10 border-brand-500/50 text-zinc-100'
+                      : 'bg-zinc-800/40 border-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  <FastForward className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-zinc-100">{t('onboarding.trackModePosition')}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{t('onboarding.trackModePositionDesc')}</p>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => setWatchMode('real')}
+                  className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex items-start space-x-2.5 ${
+                    watchMode === 'real'
+                      ? 'bg-brand-600/10 border-brand-500/50 text-zinc-100'
+                      : 'bg-zinc-800/40 border-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  <Timer className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-zinc-100">{t('onboarding.trackModeReal')}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{t('onboarding.trackModeRealDesc')}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -10,27 +10,97 @@ export interface PlayerState {
 
 export type PlayerEventCallback = (state: PlayerState, eventType: string) => void;
 
+/**
+ * Наблюдатель за HTML5 Video элементом YouTube.
+ * Обеспечивает реактивное переподключение при SPA-переходах,
+ * смене тега <video>, рекламе и динамической загрузке плеера.
+ */
 export class PlayerObserver {
   private videoElement: HTMLVideoElement | null = null;
   private callbacks: PlayerEventCallback[] = [];
   private boundHandler: (e: Event) => void;
+  private mutationObserver: MutationObserver | null = null;
+  private checkIntervalId: number | null = null;
+
+  private static readonly LISTENED_EVENTS = [
+    'play',
+    'pause',
+    'timeupdate',
+    'seeking',
+    'seeked',
+    'ended',
+    'ratechange',
+    'durationchange',
+    'loadedmetadata',
+  ];
 
   constructor() {
     this.boundHandler = this.handleVideoEvent.bind(this);
+    this.initObserver();
     this.findVideoElement();
   }
 
   public onPlayerEvent(callback: PlayerEventCallback): void {
     this.callbacks.push(callback);
+    // Если плеер уже существует и проигрывается, отправить текущее состояние
+    if (this.videoElement) {
+      const state = this.getState();
+      if (state) callback(state, 'initial');
+    }
   }
 
-  public findVideoElement(): HTMLVideoElement | null {
-    if (!this.videoElement || !document.contains(this.videoElement)) {
-      const el = document.querySelector<HTMLVideoElement>(YOUTUBE_SELECTORS.VIDEO_PLAYER);
-      if (el) {
-        this.attachListeners(el);
-      }
+  /**
+   * Инициализация MutationObserver и периодической проверки для реактивного обнаружения видео
+   */
+  private initObserver(): void {
+    if (typeof MutationObserver !== 'undefined') {
+      this.mutationObserver = new MutationObserver(() => {
+        // Проверяем актуальность видеоэлемента при любых мутациях DOM
+        if (!this.videoElement || !document.contains(this.videoElement)) {
+          this.findVideoElement();
+        }
+      });
+
+      this.mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
     }
+
+    // Регулярная проверка на случай, если видеоэлемент был заменен без явной мутации body
+    if (typeof window !== 'undefined') {
+      this.checkIntervalId = window.setInterval(() => {
+        if (!this.videoElement || !document.contains(this.videoElement)) {
+          this.findVideoElement();
+        }
+      }, 1000);
+    }
+  }
+
+  /**
+   * Поиск активного HTML5 видео элемента с учетом Shorts и основного плеера
+   */
+  public findVideoElement(): HTMLVideoElement | null {
+    const isShorts = window.location.pathname.startsWith('/shorts/');
+    let el: HTMLVideoElement | null = null;
+
+    if (isShorts) {
+      el = document.querySelector<HTMLVideoElement>(YOUTUBE_SELECTORS.SHORTS_VIDEO_PLAYER);
+    }
+
+    if (!el) {
+      el = document.querySelector<HTMLVideoElement>(YOUTUBE_SELECTORS.VIDEO_PLAYER);
+    }
+
+    // Если элемент не найден или не изменился и все еще в DOM
+    if (!el) {
+      return this.videoElement;
+    }
+
+    if (this.videoElement !== el || !document.contains(this.videoElement)) {
+      this.attachListeners(el);
+    }
+
     return this.videoElement;
   }
 
@@ -39,16 +109,15 @@ export class PlayerObserver {
       this.detachListeners();
     }
     this.videoElement = el;
-    const events = ['play', 'pause', 'timeupdate', 'seeking', 'seeked', 'ended', 'ratechange'];
-    events.forEach((evt) => {
+
+    PlayerObserver.LISTENED_EVENTS.forEach((evt) => {
       el.addEventListener(evt, this.boundHandler);
     });
   }
 
   private detachListeners(): void {
     if (this.videoElement) {
-      const events = ['play', 'pause', 'timeupdate', 'seeking', 'seeked', 'ended', 'ratechange'];
-      events.forEach((evt) => {
+      PlayerObserver.LISTENED_EVENTS.forEach((evt) => {
         this.videoElement?.removeEventListener(evt, this.boundHandler);
       });
       this.videoElement = null;
@@ -58,23 +127,50 @@ export class PlayerObserver {
   private handleVideoEvent(e: Event): void {
     if (!this.videoElement) return;
 
+    const rawDuration = this.videoElement.duration;
+    const duration =
+      typeof rawDuration === 'number' && !Number.isNaN(rawDuration) && rawDuration > 0
+        ? rawDuration
+        : 0;
+
+    const rawTime = this.videoElement.currentTime;
+    const currentTime =
+      typeof rawTime === 'number' && !Number.isNaN(rawTime) && rawTime >= 0 ? rawTime : 0;
+
     const state: PlayerState = {
-      currentTime: this.videoElement.currentTime || 0,
-      duration: this.videoElement.duration || 0,
+      currentTime,
+      duration,
       paused: this.videoElement.paused,
       ended: this.videoElement.ended,
       playbackRate: this.videoElement.playbackRate || 1,
     };
 
-    this.callbacks.forEach((cb) => cb(state, e.type));
+    this.callbacks.forEach((cb) => {
+      try {
+        cb(state, e.type);
+      } catch (err) {
+        console.error('[YouTube Autopilot] Error in player callback:', err);
+      }
+    });
   }
 
   public getState(): PlayerState | null {
     const el = this.findVideoElement();
     if (!el) return null;
+
+    const rawDuration = el.duration;
+    const duration =
+      typeof rawDuration === 'number' && !Number.isNaN(rawDuration) && rawDuration > 0
+        ? rawDuration
+        : 0;
+
+    const rawTime = el.currentTime;
+    const currentTime =
+      typeof rawTime === 'number' && !Number.isNaN(rawTime) && rawTime >= 0 ? rawTime : 0;
+
     return {
-      currentTime: el.currentTime || 0,
-      duration: el.duration || 0,
+      currentTime,
+      duration,
       paused: el.paused,
       ended: el.ended,
       playbackRate: el.playbackRate || 1,
@@ -82,6 +178,14 @@ export class PlayerObserver {
   }
 
   public destroy(): void {
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+    }
+    if (this.checkIntervalId !== null) {
+      clearInterval(this.checkIntervalId);
+      this.checkIntervalId = null;
+    }
     this.detachListeners();
     this.callbacks = [];
   }
