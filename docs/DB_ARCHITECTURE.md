@@ -18,12 +18,13 @@
   interface Settings {
     enabled: boolean;
     watchMode: "position" | "real" | "hybrid";
-    defaultThreshold: number;
-    defaultDelay: number;
+    defaultThreshold: number; // порог в % (по умолчанию 90)
+    defaultDelay: number;     // задержка перед действием в сек
     trackInactiveTab: boolean;
     shortsEnabled: boolean;
     automationMode: "automatic" | "approval" | "disabled";
     language: "ru" | "en" | "auto";
+    autoLikeOnFastForward?: boolean; // ставить лайк при перемотке выше порога
   }
   ```
 - `rules`: Массив объектных моделей `Rule[]`.
@@ -46,11 +47,15 @@ interface VideoRecord {
   channelId?: string;
   channelName?: string;
   duration: number;
-  watchedSeconds: number;
-  watchedPercent: number;
-  intervals: WatchInterval[]; // Массив [start, end]
-  firstWatchedAt: number;
-  lastWatchedAt: number;
+  watchedSeconds: number;       // Секунды в соответствии с активным режимом
+  watchedPercent: number;       // Процент в соответствии с активным режимом
+  realWatchedSeconds?: number;  // Строго реальные секунды без перемоток
+  realWatchedPercent?: number;  // Строго реальный процент без перемоток
+  maxPositionSeconds?: number;  // Максимальная позиция ползунка в сек
+  maxTimelinePercent?: number;  // Максимальный процент по позиции ползунка (0-100)
+  intervals: WatchInterval[];   // Массив уникальных интервалов [start, end]
+  firstWatchedAt?: number;
+  lastWatchedAt?: number;
   completedAt?: number;
   liked?: boolean;
   saved?: boolean;
@@ -61,7 +66,7 @@ interface VideoRecord {
 ```
 
 #### 2. `rule_executions` (Индекс по `videoId`, `ruleId`, `executedAt`):
-Обеспечивает идемпотентность выполнения действий.
+Обеспечивает идемпотентность выполнения действий и расчет точной аналитики.
 ```ts
 interface RuleExecution {
   id: string;
@@ -73,6 +78,15 @@ interface RuleExecution {
   errorMessage?: string;
 }
 ```
+
+Экспортируемые функции слоя данных (`src/database/indexeddb.ts`):
+- `saveVideoRecord(video)`
+- `getVideoRecord(id)`
+- `getAllVideos()`
+- `saveRuleExecution(exec)`
+- `getRuleExecutionsForVideo(videoId)`
+- `isRuleActionExecuted(videoId, ruleId, action)`
+- `getAllRuleExecutions()` — сбор всех выполненных автоматизаций для Dashboard
 
 #### 3. `history` (Индекс по `timestamp`):
 Хранит лог ключевых событий системы для отображения в Dashboard.

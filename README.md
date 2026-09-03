@@ -6,22 +6,27 @@
 
   **Интеллектуальное расширение для автоматизации рутинных действий на YouTube с учетом честного времени просмотра и перемоток.**
 
-  [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg?style=for-the-badge)](package.json)
+  [![Version](https://img.shields.io/badge/version-1.1.1-blue.svg?style=for-the-badge)](package.json)
   [![Framework](https://img.shields.io/badge/WXT-Next--Gen_Extension-FF5D01?style=for-the-badge&logo=wxt)](https://wxt.dev)
   [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
   [![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
   [![Chrome MV3](https://img.shields.io/badge/Chrome-Manifest_V3-4285F4?style=for-the-badge&logo=google-chrome)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-  [![Firefox MV2](https://img.shields.io/badge/Firefox-Manifest_V2-FF7139?style=for-the-badge&logo=firefox)](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions)
+  [![Firefox MV2](https://img.shields.io/badge/Firefox-AMO_Validated-FF7139?style=for-the-badge&logo=firefox)](https://addons.mozilla.org/)
   [![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)](LICENSE)
+
+  <p align="center">
+    <b>Русский</b> • <a href="README_EN.md">English</a>
+  </p>
 
   <p align="center">
     <a href="#-ключевые-возможности">Возможности</a> •
     <a href="#-режимы-отслеживания-просмотра">Режимы просмотра</a> •
     <a href="#-архитектура">Архитектура</a> •
     <a href="#-быстрый-старт">Установка и запуск</a> •
-    <a href="#-структура-проекта">Структура</a> •
-    <a href="#-безопасность-и-приватность">Приватность</a>
+    <a href="BUILD.md">Сборка из исходников</a> •
+    <a href="CONTRIBUTING.md">Участие в проекте</a> •
+    <a href="#-безопасность-и-соответствие-стандартам-каталогов">Приватность</a>
   </p>
 </div>
 
@@ -231,9 +236,15 @@ npm run zip:all
 │       ├── player.ts            # PlayerObserver
 │       └── selectors.ts         # CSS-селекторы плеера
 ├── docs/                        # Архитектурная документация и CHANGELOG
-│   ├── PARSING_ARCHITECTURE.md  # Детальное описание алгоритмов трекинга и DOM
+│   ├── API_ARCHITECTURE.md      # Протокол сообщений IPC и контракты данных
+│   ├── DB_ARCHITECTURE.md       # Схема IndexedDB и локального хранилища
+│   ├── PARSING_ARCHITECTURE.md  # Алгоритмы трекинга, DOM-селекторы и безопасность
 │   └── CHANGELOG.md             # Журнал всех версий и изменений
 ├── public/                      # Статические ресурсы и иконки
+├── .github/                     # GitHub Actions CI и шаблоны Issue
+├── BUILD.md                     # Воспроизводимые инструкции по сборке (AMO)
+├── CONTRIBUTING.md              # Руководство для участников разработки
+├── SECURITY.md                  # Политика безопасности и приватности
 ├── package.json
 ├── tsconfig.json
 └── wxt.config.ts                # Конфигурация сборщика WXT
@@ -241,12 +252,15 @@ npm run zip:all
 
 ---
 
-## 🔒 Безопасность и приватность
+## 🔒 Безопасность и соответствие стандартам каталогов
 
-- **Никаких внешних запросов:** расширение не отправляет ваши данные, историю просмотров или cookie на сторонние серверы.
-- **Минимальные разрешения (`permissions`):** запрашиваются только `storage` и доступ к хостам `*://*.youtube.com/*`.
-- **Изоляция контекста:** скрипты контента работают в изолированном мире расширения и используют безопасный транспорт сообщений с проверкой валидности рантайма.
-- **Идемпотентность действий:** каждое действие проверяется по базе выполненных автоматизаций, исключая повторные или ошибочные лайки.
+- **Соответствие Mozilla AMO (Firefox Add-ons):**
+  - **Декларация согласия на сбор данных (`data_collection_permissions`):** Задекларировано полное отсутствие сбора персональных данных (`"required": ["none"]`).
+  - **Безопасный DOM без `innerHTML`:** Полный отказ от вызовов `innerHTML` в пользу нативного построения DOM (`document.createElement`, `document.createTextNode`, `textContent`), что гарантирует 0 ошибок и 0 предупреждений при строгой проверке в автоматическом валидаторе Mozilla.
+- **Никаких внешних запросов:** расширение не отправляет ваши данные, историю просмотров или cookie на сторонние серверы (100% Privacy-First).
+- **Минимальные разрешения (`permissions`):** запрашиваются только `storage`, `activeTab` и доступ к хостам `*://*.youtube.com/*`.
+- **Изоляция контекста:** скрипты контента работают в изолированном мире расширения и используют безопасный транспорт сообщений `safeSendMessage` с проверкой валидности рантайма.
+- **Идемпотентность действий:** каждое действие проверяется по базе выполненных автоматизаций в IndexedDB, исключая повторные или ошибочные лайки.
 
 ---
 

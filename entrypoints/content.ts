@@ -345,37 +345,106 @@ function showApprovalBanner(ruleName: string, actionType: string, onApprove: () 
     transition: transform 0.2s ease, opacity 0.2s ease;
   `;
 
-  banner.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #3ea6ff; font-size: 13px;">
-      <!-- Robot Vector SVG -->
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3ea6ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;">
-        <rect x="3" y="11" width="18" height="10" rx="2" />
-        <circle cx="12" cy="5" r="2" />
-        <path d="M12 7v4" />
-        <line x1="8" y1="15" x2="8" y2="15.01" />
-        <line x1="16" y1="15" x2="16" y2="15.01" />
-      </svg>
-      <span>${t('app.title')}</span>
-    </div>
-    <div style="font-size: 12px; color: #e4e4e7; line-height: 1.45;">
-      ${t('approval.rule')} <b style="color: #ffffff;">"${ruleName}"</b> ${t('approval.wantsTo')}: <b style="color: #3ea6ff;">${actionName}</b>
-    </div>
-    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px;">
-      <button id="yt-ap-skip" style="background: transparent; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s ease;">${t('approval.skip')}</button>
-      <button id="yt-ap-allow" style="background: #2563eb; color: #ffffff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s ease;">${t('approval.allow')}</button>
-    </div>
-  `;
+  // Шапка баннера
+  const header = document.createElement('div');
+  header.style.cssText = 'display: flex; align-items: center; gap: 8px; font-weight: 600; color: #3ea6ff; font-size: 13px;';
 
-  document.body.appendChild(banner);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', '16');
+  svg.setAttribute('height', '16');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', '#3ea6ff');
+  svg.setAttribute('stroke-width', '2.2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.style.cssText = 'flex-shrink: 0; display: block;';
 
-  document.getElementById('yt-ap-allow')?.addEventListener('click', () => {
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', '3');
+  rect.setAttribute('y', '11');
+  rect.setAttribute('width', '18');
+  rect.setAttribute('height', '10');
+  rect.setAttribute('rx', '2');
+  svg.appendChild(rect);
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '12');
+  circle.setAttribute('cy', '5');
+  circle.setAttribute('r', '2');
+  svg.appendChild(circle);
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M12 7v4');
+  svg.appendChild(path);
+
+  const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line1.setAttribute('x1', '8');
+  line1.setAttribute('y1', '15');
+  line1.setAttribute('x2', '8');
+  line1.setAttribute('y2', '15.01');
+  svg.appendChild(line1);
+
+  const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line2.setAttribute('x1', '16');
+  line2.setAttribute('y1', '15');
+  line2.setAttribute('x2', '16');
+  line2.setAttribute('y2', '15.01');
+  svg.appendChild(line2);
+
+  const titleSpan = document.createElement('span');
+  titleSpan.textContent = t('app.title');
+  header.appendChild(svg);
+  header.appendChild(titleSpan);
+
+  // Текст сообщения
+  const messageDiv = document.createElement('div');
+  messageDiv.style.cssText = 'font-size: 12px; color: #e4e4e7; line-height: 1.45;';
+  messageDiv.appendChild(document.createTextNode(`${t('approval.rule')} `));
+
+  const ruleB = document.createElement('b');
+  ruleB.style.color = '#ffffff';
+  ruleB.textContent = `"${ruleName}"`;
+  messageDiv.appendChild(ruleB);
+
+  messageDiv.appendChild(document.createTextNode(` ${t('approval.wantsTo')}: `));
+
+  const actionB = document.createElement('b');
+  actionB.style.color = '#3ea6ff';
+  actionB.textContent = actionName;
+  messageDiv.appendChild(actionB);
+
+  // Кнопки управления
+  const btnContainer = document.createElement('div');
+  btnContainer.style.cssText = 'display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px;';
+
+  const skipBtn = document.createElement('button');
+  skipBtn.id = 'yt-ap-skip';
+  skipBtn.style.cssText =
+    'background: transparent; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s ease;';
+  skipBtn.textContent = t('approval.skip');
+  skipBtn.addEventListener('click', () => {
+    banner.remove();
+  });
+
+  const allowBtn = document.createElement('button');
+  allowBtn.id = 'yt-ap-allow';
+  allowBtn.style.cssText =
+    'background: #2563eb; color: #ffffff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.15s ease;';
+  allowBtn.textContent = t('approval.allow');
+  allowBtn.addEventListener('click', () => {
     onApprove();
     banner.remove();
   });
 
-  document.getElementById('yt-ap-skip')?.addEventListener('click', () => {
-    banner.remove();
-  });
+  btnContainer.appendChild(skipBtn);
+  btnContainer.appendChild(allowBtn);
+
+  banner.appendChild(header);
+  banner.appendChild(messageDiv);
+  banner.appendChild(btnContainer);
+
+  document.body.appendChild(banner);
 
   setTimeout(() => {
     if (document.body.contains(banner)) {

@@ -1,14 +1,94 @@
 import { YOUTUBE_SELECTORS } from './selectors';
 import { formatSeconds, t } from '../i18n';
 
+function createRobotSvg(size: number = 15): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', '#3ea6ff');
+  svg.setAttribute('stroke-width', '2.2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.style.cssText = 'flex-shrink: 0; display: block;';
+
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', '3');
+  rect.setAttribute('y', '11');
+  rect.setAttribute('width', '18');
+  rect.setAttribute('height', '10');
+  rect.setAttribute('rx', '2');
+  svg.appendChild(rect);
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '12');
+  circle.setAttribute('cy', '5');
+  circle.setAttribute('r', '2');
+  svg.appendChild(circle);
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M12 7v4');
+  svg.appendChild(path);
+
+  const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line1.setAttribute('x1', '8');
+  line1.setAttribute('y1', '15');
+  line1.setAttribute('x2', '8');
+  line1.setAttribute('y2', '15.01');
+  svg.appendChild(line1);
+
+  const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line2.setAttribute('x1', '16');
+  line2.setAttribute('y1', '15');
+  line2.setAttribute('x2', '16');
+  line2.setAttribute('y2', '15.01');
+  svg.appendChild(line2);
+
+  return svg;
+}
+
+function createHeartSvg(size: number = 9): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', '#f87171');
+  svg.setAttribute('stroke', '#f87171');
+  svg.setAttribute('stroke-width', '2');
+  svg.style.cssText = 'display: block;';
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute(
+    'd',
+    'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'
+  );
+  svg.appendChild(path);
+
+  return svg;
+}
+
 /**
  * Инлайн-виджет расширения YouTube Autopilot в панели управления плеера.
  * Разработан по стандартам UI/UX Pro Max и Pixel Perfect:
+ * Безопасное DOM-построение без innerHTML (100% совместимость с Mozilla AMO и CSP),
  * векторные SVG-иконки, WCAG 4.5:1 контраст, легкие 150–200ms микро-анимации.
  */
 export class YouTubePlayerOverlay {
   private container: HTMLElement | null = null;
   private cardPopover: HTMLElement | null = null;
+
+  // Динамические элементы капсулы
+  private pillPercentSpan: HTMLSpanElement | null = null;
+  private pillTimeSpan: HTMLSpanElement | null = null;
+  private pillActionPill: HTMLSpanElement | null = null;
+  private pillActionSpan: HTMLSpanElement | null = null;
+
+  // Динамические элементы поповера
+  private popoverPercentSpan: HTMLSpanElement | null = null;
+  private popoverProgressBar: HTMLDivElement | null = null;
+  private popoverWatchedTimeB: HTMLElement | null = null;
+  private popoverNextActionSpan: HTMLSpanElement | null = null;
 
   public renderOrUpdate(
     rawWatchedPercent: number,
@@ -26,82 +106,38 @@ export class YouTubePlayerOverlay {
 
     const actionText = nextActionText || t('player.likeAt', { percent: 90 });
 
-    // 1. Компактное содержимое капсулы в строке плеера
-    const buttonHtml = `
-      <div class="yt-ap-pill-content" style="display: inline-flex; align-items: center; gap: 6px; height: 100%; white-space: nowrap; font-family: 'YouTube Noto', Roboto, Arial, sans-serif; font-size: 12px; font-weight: 500; color: #ffffff; user-select: none;">
-        <!-- Robot SVG Vector Icon (No emojis) -->
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3ea6ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;">
-          <rect x="3" y="11" width="18" height="10" rx="2" />
-          <circle cx="12" cy="5" r="2" />
-          <path d="M12 7v4" />
-          <line x1="8" y1="15" x2="8" y2="15.01" />
-          <line x1="16" y1="15" x2="16" y2="15.01" />
-        </svg>
+    // 1. Обновление капсулы в строке плеера
+    if (this.pillPercentSpan) {
+      this.pillPercentSpan.textContent = `${watchedPercent}%`;
+    }
+    if (this.pillTimeSpan) {
+      this.pillTimeSpan.textContent = formatSeconds(watchedSeconds);
+    }
+    if (this.pillActionSpan && this.pillActionPill) {
+      if (actionText) {
+        this.pillActionSpan.textContent = actionText;
+        this.pillActionPill.style.display = 'inline-flex';
+      } else {
+        this.pillActionPill.style.display = 'none';
+      }
+    }
 
-        <!-- Percent -->
-        <span style="color: #ffffff; font-weight: 600; line-height: 1;">${watchedPercent}%</span>
-
-        <!-- Separator -->
-        <span style="color: rgba(255, 255, 255, 0.4); font-size: 10px;">•</span>
-
-        <!-- Watched Time -->
-        <span style="color: rgba(255, 255, 255, 0.9); font-weight: 400; font-size: 11px; line-height: 1;">${formatSeconds(watchedSeconds)}</span>
-
-        <!-- Next Action Pill -->
-        ${
-          actionText
-            ? `
-          <span style="display: inline-flex; align-items: center; gap: 3px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; line-height: 1; margin-left: 2px;">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="#f87171" stroke="#f87171" stroke-width="2" style="display: block;">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-            <span>${actionText}</span>
-          </span>
-        `
-            : ''
-        }
-      </div>
-    `;
-
-    this.container.innerHTML = buttonHtml;
-
-    // 2. Обновление карточки-поповера над капсулой
-    if (this.cardPopover) {
-      this.cardPopover.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; color: #f4f4f5; font-size: 12px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3ea6ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; display: block;">
-              <rect x="3" y="11" width="18" height="10" rx="2" />
-              <circle cx="12" cy="5" r="2" />
-              <path d="M12 7v4" />
-              <line x1="8" y1="15" x2="8" y2="15.01" />
-              <line x1="16" y1="15" x2="16" y2="15.01" />
-            </svg>
-            <span>${t('app.title')}</span>
-          </div>
-          <span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 7px; border-radius: 9999px; font-weight: 500;">${t('player.active')}</span>
-        </div>
-
-        <div style="margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px; color: #a1a1aa; margin-bottom: 4px;">
-            <span>${t('player.realWatch')}</span>
-            <span style="color: #3ea6ff; font-weight: 600;">${watchedPercent}%</span>
-          </div>
-          <div style="width: 100%; background: #27272a; height: 5px; border-radius: 9999px; overflow: hidden;">
-            <div style="width: ${watchedPercent}%; background: linear-gradient(90deg, #2563eb, #3ea6ff); height: 100%; border-radius: 9999px; transition: width 0.25s ease;"></div>
-          </div>
-        </div>
-
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #a1a1aa; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;">
-          <span>${t('player.watched')}: <b style="color: #f4f4f5;">${formatSeconds(watchedSeconds)}</b></span>
-          <span style="color: #f87171; font-weight: 600;">${t('player.next')}: ${actionText}</span>
-        </div>
-      `;
+    // 2. Обновление карточки-поповера
+    if (this.popoverPercentSpan) {
+      this.popoverPercentSpan.textContent = `${watchedPercent}%`;
+    }
+    if (this.popoverProgressBar) {
+      this.popoverProgressBar.style.width = `${watchedPercent}%`;
+    }
+    if (this.popoverWatchedTimeB) {
+      this.popoverWatchedTimeB.textContent = formatSeconds(watchedSeconds);
+    }
+    if (this.popoverNextActionSpan) {
+      this.popoverNextActionSpan.textContent = `${t('player.next')}: ${actionText}`;
     }
   }
 
   private initContainer(): void {
-    // Находим место встраивания
     const timeDisplay = document.querySelector<HTMLElement>(YOUTUBE_SELECTORS.TIME_DISPLAY);
     const leftControls = document.querySelector<HTMLElement>(YOUTUBE_SELECTORS.LEFT_CONTROLS);
     const rightControls = document.querySelector<HTMLElement>(YOUTUBE_SELECTORS.PLAYER_CONTROLS);
@@ -140,6 +176,48 @@ export class YouTubePlayerOverlay {
       z-index: 9999 !important;
     `;
 
+    // Построение содержимого капсулы безопасными методами DOM
+    const pillContent = document.createElement('div');
+    pillContent.className = 'yt-ap-pill-content';
+    pillContent.style.cssText =
+      "display: inline-flex; align-items: center; gap: 6px; height: 100%; white-space: nowrap; font-family: 'YouTube Noto', Roboto, Arial, sans-serif; font-size: 12px; font-weight: 500; color: #ffffff; user-select: none;";
+
+    // Robot icon
+    pillContent.appendChild(createRobotSvg(15));
+
+    // Percent span
+    this.pillPercentSpan = document.createElement('span');
+    this.pillPercentSpan.style.cssText = 'color: #ffffff; font-weight: 600; line-height: 1;';
+    this.pillPercentSpan.textContent = '0%';
+    pillContent.appendChild(this.pillPercentSpan);
+
+    // Separator
+    const separator = document.createElement('span');
+    separator.style.cssText = 'color: rgba(255, 255, 255, 0.4); font-size: 10px;';
+    separator.textContent = '•';
+    pillContent.appendChild(separator);
+
+    // Watched time span
+    this.pillTimeSpan = document.createElement('span');
+    this.pillTimeSpan.style.cssText =
+      'color: rgba(255, 255, 255, 0.9); font-weight: 400; font-size: 11px; line-height: 1;';
+    this.pillTimeSpan.textContent = '0:00';
+    pillContent.appendChild(this.pillTimeSpan);
+
+    // Next action pill
+    this.pillActionPill = document.createElement('span');
+    this.pillActionPill.style.cssText =
+      'display: inline-flex; align-items: center; gap: 3px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; line-height: 1; margin-left: 2px;';
+
+    this.pillActionPill.appendChild(createHeartSvg(9));
+
+    this.pillActionSpan = document.createElement('span');
+    this.pillActionSpan.textContent = '90%';
+    this.pillActionPill.appendChild(this.pillActionSpan);
+
+    pillContent.appendChild(this.pillActionPill);
+    this.container.appendChild(pillContent);
+
     // Создание Popover карточки над кнопкой
     this.cardPopover = document.createElement('div');
     this.cardPopover.className = 'yt-ap-popover';
@@ -162,6 +240,81 @@ export class YouTubePlayerOverlay {
       z-index: 99999 !important;
       white-space: normal !important;
     `;
+
+    // Popover Header
+    const popoverHeader = document.createElement('div');
+    popoverHeader.style.cssText =
+      'display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;';
+
+    const titleGroup = document.createElement('div');
+    titleGroup.style.cssText =
+      'display: flex; align-items: center; gap: 6px; font-weight: 600; color: #f4f4f5; font-size: 12px;';
+    titleGroup.appendChild(createRobotSvg(14));
+
+    const popoverTitle = document.createElement('span');
+    popoverTitle.textContent = t('app.title');
+    titleGroup.appendChild(popoverTitle);
+
+    const activeBadge = document.createElement('span');
+    activeBadge.style.cssText =
+      'font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 7px; border-radius: 9999px; font-weight: 500;';
+    activeBadge.textContent = t('player.active');
+
+    popoverHeader.appendChild(titleGroup);
+    popoverHeader.appendChild(activeBadge);
+    this.cardPopover.appendChild(popoverHeader);
+
+    // Progress bar block
+    const progressBlock = document.createElement('div');
+    progressBlock.style.marginBottom = '10px';
+
+    const progressLabelRow = document.createElement('div');
+    progressLabelRow.style.cssText =
+      'display: flex; justify-content: space-between; font-size: 11px; color: #a1a1aa; margin-bottom: 4px;';
+
+    const progressLabel = document.createElement('span');
+    progressLabel.textContent = t('player.realWatch');
+
+    this.popoverPercentSpan = document.createElement('span');
+    this.popoverPercentSpan.style.cssText = 'color: #3ea6ff; font-weight: 600;';
+    this.popoverPercentSpan.textContent = '0%';
+
+    progressLabelRow.appendChild(progressLabel);
+    progressLabelRow.appendChild(this.popoverPercentSpan);
+    progressBlock.appendChild(progressLabelRow);
+
+    const barContainer = document.createElement('div');
+    barContainer.style.cssText =
+      'width: 100%; background: #27272a; height: 5px; border-radius: 9999px; overflow: hidden;';
+
+    this.popoverProgressBar = document.createElement('div');
+    this.popoverProgressBar.style.cssText =
+      'width: 0%; background: linear-gradient(90deg, #2563eb, #3ea6ff); height: 100%; border-radius: 9999px; transition: width 0.25s ease;';
+
+    barContainer.appendChild(this.popoverProgressBar);
+    progressBlock.appendChild(barContainer);
+    this.cardPopover.appendChild(progressBlock);
+
+    // Popover Footer
+    const popoverFooter = document.createElement('div');
+    popoverFooter.style.cssText =
+      'display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #a1a1aa; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;';
+
+    const watchedSpan = document.createElement('span');
+    watchedSpan.textContent = `${t('player.watched')}: `;
+
+    this.popoverWatchedTimeB = document.createElement('b');
+    this.popoverWatchedTimeB.style.color = '#f4f4f5';
+    this.popoverWatchedTimeB.textContent = '0:00';
+    watchedSpan.appendChild(this.popoverWatchedTimeB);
+
+    this.popoverNextActionSpan = document.createElement('span');
+    this.popoverNextActionSpan.style.cssText = 'color: #f87171; font-weight: 600;';
+    this.popoverNextActionSpan.textContent = `${t('player.next')}: 90%`;
+
+    popoverFooter.appendChild(watchedSpan);
+    popoverFooter.appendChild(this.popoverNextActionSpan);
+    this.cardPopover.appendChild(popoverFooter);
 
     this.container.appendChild(this.cardPopover);
 
@@ -209,5 +362,13 @@ export class YouTubePlayerOverlay {
       this.container.remove();
       this.container = null;
     }
+    this.pillPercentSpan = null;
+    this.pillTimeSpan = null;
+    this.pillActionPill = null;
+    this.pillActionSpan = null;
+    this.popoverPercentSpan = null;
+    this.popoverProgressBar = null;
+    this.popoverWatchedTimeB = null;
+    this.popoverNextActionSpan = null;
   }
 }

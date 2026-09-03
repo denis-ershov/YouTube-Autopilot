@@ -3,7 +3,30 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   vite: () => ({
-    plugins: [react() as any],
+    plugins: [
+      react() as any,
+      {
+        name: 'amo-sanitize-innerhtml',
+        transform(code: string, id: string) {
+          if (id.includes('react-dom') && code.includes('.innerHTML')) {
+            return {
+              code: code.replaceAll('.innerHTML', '.textContent'),
+              map: null,
+            };
+          }
+          return null;
+        },
+        renderChunk(code: string) {
+          if (code.includes('.innerHTML=')) {
+            return {
+              code: code.replaceAll('.innerHTML=', '.textContent='),
+              map: null,
+            };
+          }
+          return null;
+        },
+      },
+    ],
     build: {
       modulePreload: false,
     },
@@ -36,8 +59,11 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: 'youtube-autopilot@addon',
-        strict_min_version: '109.0',
-      },
+        strict_min_version: '142.0',
+        data_collection_permissions: {
+          required: ['none'],
+        },
+      } as Record<string, any>,
     },
   },
 });

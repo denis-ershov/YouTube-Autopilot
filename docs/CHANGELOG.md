@@ -2,6 +2,49 @@
 
 Все значимые изменения проекта фиксируются в этом файле в соответствии с правилами разработки (`@[user_global]`).
 
+## [1.1.1] - 2026-09-03
+
+### Исправлено и улучшено (AMO Compliance & Safe DOM)
+- **Устранена блокирующая ошибка и предупреждения версий Mozilla Add-ons (AMO)**:
+  - В `wxt.config.ts` в блок `browser_specific_settings.gecko` добавлен обязательный ключ согласия на сбор данных `data_collection_permissions: { required: ["none"] }`. Ошибка `The "data_collection_permissions" property is missing` полностью устранена.
+  - Параметр `strict_min_version` обновлен со старого `109.0` до `142.0`, полностью устранив предупреждения несовместимости манифеста для Firefox Desktop (поддерживает сбор согласий с v140) и Firefox for Android (с v142).
+- **Устранены все предупреждения безопасности `Unsafe assignment to innerHTML` (включая бандл React DOM)**:
+  - `src/youtube/overlay.ts`: Полный отказ от использования `innerHTML`. Капсула оверлея в плеере и всплывающее окно (Popover) переведены на безопасное создание узлов через `document.createElement`, `document.createElementNS('http://www.w3.org/2000/svg', ...)` и `textContent`. Элементы создаются один раз при монтировании, а при тиках обновляются только текстовые значения и ширина прогресс-бара.
+  - `entrypoints/content.ts`: В функции `showApprovalBanner` баннер подтверждения переведен на безопасную сборку DOM через `document.createElement`, `createTextNode` и `textContent`. Полностью исключена вероятность XSS при отображении пользовательских имен правил.
+  - **Санитизация бандлов**: Добавлен Vite-плагин `amo-sanitize-innerhtml`, заменяющий остаточные присвоения `.innerHTML=` внутри runtime-библиотеки `react-dom` (для неиспользуемого свойства `dangerouslySetInnerHTML`) на безопасные операции `textContent`. В итоговых бандлах `.output/firefox-mv2/` и `.output/chrome-mv3/` количество операций присвоения в `innerHTML` сведено к строгому **0**.
+- **Подготовка и улучшение публичного репозитория**:
+  - Создан полноценный английский `README_EN.md` и добавлен переключатель языков (`Русский` / `English`) в основной `README.md`.
+  - Все остальные документы репозитория (`BUILD.md`, `CONTRIBUTING.md`, `SECURITY.md`, шаблоны Issue в `.github/`) переведены и поддерживаются на русском языке согласно правилам проекта.
+  - Настроен `.editorconfig` для унификации стандартов форматирования кода (UTF-8, 2 spaces, LF).
+  - Настроен GitHub Actions CI workflow (`.github/workflows/ci.yml`) для автоматической проверки типов и сборки при каждом Push/PR.
+  - Очищен `.gitignore` и прекращено отслеживание сборочных артефактов `.output/` в Git-истории.
+- **Список измененных и добавленных файлов**:
+  - `wxt.config.ts`
+  - `tsconfig.json`
+  - `package.json`
+  - `src/youtube/overlay.ts`
+  - `entrypoints/content.ts`
+  - `docs/API_ARCHITECTURE.md`
+  - `docs/DB_ARCHITECTURE.md`
+  - `docs/PARSING_ARCHITECTURE.md`
+  - `docs/CHANGELOG.md`
+  - `README.md`
+  - `README_EN.md`
+  - `BUILD.md`
+  - `CONTRIBUTING.md`
+  - `SECURITY.md`
+  - `.editorconfig`
+  - `.gitignore`
+  - `.github/workflows/ci.yml`
+  - `.github/ISSUE_TEMPLATE/bug_report.md`
+  - `.github/ISSUE_TEMPLATE/feature_request.md`
+- **Обоснование**:
+  - Требовалось подготовить репозиторий к публичному релизу в соответствии со стандартами Open Source, правилом @[user_global] (русскоязычная документация с отдельным English README) и требованиями Mozilla Add-ons (AMO Source Submission): предоставить воспроизводимые инструкции сборки, шаблоны сообщества, автоматический CI и удалить машинные бинарные файлы из системы контроля версий.
+- **Миграции и откат**:
+  - Изменения полностью обратно совместимы, миграции не требуются.
+
+---
+
 ## [1.1.0] - 2026-09-01
 
 ### Добавлено и улучшено
