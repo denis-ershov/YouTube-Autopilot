@@ -12,23 +12,22 @@
 
 ## 2. Структура `chrome.storage.local`
 
-### Ключи хранилища:
-- `settings`:
+### Ключи хранилища (константы в `src/core/storage/storage.ts`):
+- `yt_autopilot_settings` (`SETTINGS_KEY`):
   ```ts
   interface Settings {
     enabled: boolean;
     watchMode: "position" | "real" | "hybrid";
-    defaultThreshold: number; // порог в % (по умолчанию 90)
-    defaultDelay: number;     // задержка перед действием в сек
-    trackInactiveTab: boolean;
-    shortsEnabled: boolean;
-    automationMode: "automatic" | "approval" | "disabled";
+    defaultThreshold: number; // порог в % (по умолчанию 90): мастер переносит его в пресеты автолайка, UI показывает в подсказках
+    automationMode: "automatic" | "approval" | "disabled"; // "disabled" — только для совместимости, в UI не предлагается
     language: "ru" | "en" | "auto";
-    autoLikeOnFastForward?: boolean; // ставить лайк при перемотке выше порога
   }
   ```
-- `rules`: Массив объектных моделей `Rule[]`.
-- `onboardingCompleted`: Флаг прохождения начального мастера настройки (`boolean`).
+  При чтении сохранённые значения накладываются на `DEFAULT_SETTINGS`, поэтому новые поля появляются без миграции, а устаревшие (`defaultDelay`, `trackInactiveTab`, `shortsEnabled`, `autoLikeOnFastForward`, удалены в 1.2.0) игнорируются.
+- `yt_autopilot_rules` (`RULES_KEY`): массив `Rule[]`. Пресеты засеваются **только если ключ отсутствует**; пустой массив — осознанное удаление всех правил пользователем и сохраняется.
+- `onboardingCompleted` (`ONBOARDING_KEY`): флаг прохождения мастера первой настройки (`boolean`).
+
+Доступ к хранилищу идёт через `readStorage` / `writeStorage` (Promise API `chrome.storage.local`) с перехватом ошибок; вне контекста расширения функции возвращают значения по умолчанию.
 
 ---
 
@@ -57,9 +56,9 @@ interface VideoRecord {
   firstWatchedAt?: number;
   lastWatchedAt?: number;
   completedAt?: number;
-  liked?: boolean;
-  saved?: boolean;
-  source?: VideoSource;
+  liked?: boolean;              // выставляется Background после успешного LIKE_VIDEO
+  saved?: boolean;              // выставляется Background после успешного SAVE_VIDEO
+  source?: VideoSource;         // зарезервировано: определение источника ещё не реализовано
   createdAt: number;
   updatedAt: number;
 }
@@ -82,18 +81,18 @@ interface RuleExecution {
 Экспортируемые функции слоя данных (`src/database/indexeddb.ts`):
 - `saveVideoRecord(video)`
 - `getVideoRecord(id)`
-- `getAllVideos()`
+- `getAllVideos()` — от последних просмотренных к старым (для истории Dashboard)
 - `saveRuleExecution(exec)`
-- `getRuleExecutionsForVideo(videoId)`
-- `isRuleActionExecuted(videoId, ruleId, action)`
-- `getAllRuleExecutions()` — сбор всех выполненных автоматизаций для Dashboard
+- `isActionExecuted(videoId, action)` — успешно ли выполнено действие для видео любым правилом
+- `getAllRuleExecutions()` — все выполненные автоматизации для статистики Dashboard
 
-#### 3. `history` (Индекс по `timestamp`):
-Хранит лог ключевых событий системы для отображения в Dashboard.
+**Владелец записи:** только Background Service Worker. Dashboard читает БД напрямую (та же origin расширения). Content Script работает в origin `youtube.com` и к этой БД доступа не имеет — только через сообщения.
 
 ---
 
-## 4. Оптимизация и Идемпотентность
+## 4. Идемпотентность, ограничения и жизненный цикл данных
 
-- **Стратегия очистки:** Логи выполнения старше 90 дней автоматически архивируются или удаляются для предотвращения разрастания базы.
-- **Идемпотентность:** Перед выполнением любого действия `ActionEngine` производит поиск записи в `rule_executions` по составному ключу `(videoId + ruleId + action)`. Повторный запуск того же действия блокируется.
+- **Идемпотентность:** перед выполнением действия `ActionEngine` запрашивает `CHECK_ACTION_EXECUTED` по ключу `(videoId + action)` и дополнительно держит в памяти вкладки множества ожидающих и обработанных действий (см. `API_ARCHITECTURE.md`).
+- **Порог завершения:** `COMPLETION_PERCENT = 90` (`src/types/video.ts`) — единая константа для `completedAt`, статистики и фильтра «Завершённые».
+- **Хранение:** автоматическая очистка старых записей не реализована — история растёт до ручной очистки данных расширения. Ротация логов `rule_executions` — кандидат в следующий релиз.
+- **Миграции:** схема IndexedDB — версия 1 без изменений; изменения 1.2.0 касаются только формы объектов и обратно совместимы.

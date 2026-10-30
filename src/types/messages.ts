@@ -1,25 +1,21 @@
-import { VideoRecord } from './video';
-import { Settings } from './settings';
-import { Rule, ActionType } from './rules';
+import { ActionType, RuleExecution } from './rules';
 
+/**
+ * Типы сообщений, которые реально обрабатывает Background Service Worker.
+ * Любой новый тип обязан иметь обработчик в `entrypoints/background.ts`
+ * и описание в `docs/API_ARCHITECTURE.md`.
+ */
 export type ExtensionMessageType =
   | 'VIDEO_STARTED'
   | 'PROGRESS_UPDATE'
-  | 'EVALUATE_RULES'
-  | 'EXECUTE_ACTION'
   | 'ACTION_EXECUTED_LOG'
-  | 'GET_CURRENT_VIDEO_STATUS'
-  | 'CURRENT_VIDEO_STATUS_RESPONSE'
+  | 'CHECK_ACTION_EXECUTED'
+  | 'GET_VIDEO_RECORD'
   | 'GET_SETTINGS'
   | 'UPDATE_SETTINGS'
   | 'GET_RULES'
   | 'SAVE_RULE'
-  | 'DELETE_RULE'
-  | 'CHECK_RULE_EXECUTED'
-  | 'GET_VIDEO_RECORD'
-  | 'APPROVE_ACTION'
-  | 'REJECT_ACTION'
-  | 'SHOW_APPROVAL_MODAL';
+  | 'DELETE_RULE';
 
 export interface ExtensionMessage<T = unknown> {
   type: ExtensionMessageType;
@@ -30,7 +26,6 @@ export interface VideoStartedPayload {
   videoId: string;
   url: string;
   title: string;
-  channelId?: string;
   channelName?: string;
   duration: number;
 }
@@ -46,16 +41,13 @@ export interface ProgressUpdatePayload {
   intervals: [number, number][];
 }
 
-export interface ExecuteActionPayload {
-  ruleId: string;
+export interface CheckActionExecutedPayload {
   videoId: string;
   action: ActionType;
 }
 
-export interface ApprovalPayload {
-  approvalId: string;
-  ruleName: string;
-  videoTitle: string;
-  action: ActionType;
-  videoId: string;
+export interface ActionExecutedLogPayload extends CheckActionExecutedPayload {
+  ruleId: string;
+  status: RuleExecution['status'];
+  error?: string;
 }

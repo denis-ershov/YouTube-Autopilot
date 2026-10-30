@@ -1,3 +1,5 @@
+import type { ExtensionMessage } from '../../types/messages';
+
 /**
  * Безопасные утилиты для работы с Chrome Extension API.
  * Гарантируют надежную работу в условиях жизненного цикла MV3 Service Worker,
@@ -27,19 +29,15 @@ export function isExtensionContextValid(): boolean {
  * - "Error: Extension context invalidated."
  * - "Error: Could not establish connection. Receiving end does not exist."
  */
-export async function safeSendMessage<T = any>(message: any): Promise<T | null> {
+export async function safeSendMessage<T>(message: ExtensionMessage): Promise<T | null> {
   if (!isExtensionContextValid()) {
     return null;
   }
 
   try {
-    const runtime = chrome?.runtime;
-    if (!runtime || typeof runtime.sendMessage !== 'function') {
-      return null;
-    }
-    return await runtime.sendMessage(message);
-  } catch (err: any) {
-    const msg = err?.message || String(err);
+    return (await chrome.runtime.sendMessage(message)) as T;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     if (
       msg.includes('Extension context invalidated') ||
       msg.includes('Receiving end does not exist') ||
@@ -50,5 +48,14 @@ export async function safeSendMessage<T = any>(message: any): Promise<T | null> 
       console.warn('[YouTube Autopilot] Message send failed:', msg);
     }
     return null;
+  }
+}
+
+/** Версия из manifest.json (единый источник — package.json через WXT). */
+export function getExtensionVersion(): string {
+  try {
+    return chrome.runtime.getManifest().version;
+  } catch {
+    return '';
   }
 }

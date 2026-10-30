@@ -9,6 +9,13 @@ export type ConditionType =
   | 'IS_SHORT'
   | 'IS_SUBSCRIBED';
 
+/** Условия, значение которых — процент просмотра (0–100). */
+export const PERCENT_CONDITION_TYPES: ReadonlySet<ConditionType> = new Set<ConditionType>([
+  'WATCHED_PERCENT',
+  'TIMELINE_PERCENT',
+  'REAL_WATCHED_PERCENT',
+]);
+
 export type Operator =
   | 'EQ'     // =
   | 'GT'     // >
@@ -35,7 +42,6 @@ export type ActionType =
 
 export interface Action {
   type: ActionType;
-  options?: Record<string, unknown>;
 }
 
 export interface Rule {
@@ -45,7 +51,6 @@ export interface Rule {
   conditions: Condition[];
   actions: Action[];
   delay?: number; // задержка в секундах перед выполнением
-  maxRetries?: number;
   createdAt: number;
   updatedAt: number;
 }

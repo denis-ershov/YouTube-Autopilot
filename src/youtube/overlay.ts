@@ -1,72 +1,6 @@
 import { YOUTUBE_SELECTORS } from './selectors';
 import { formatSeconds, t } from '../i18n';
-
-function createRobotSvg(size: number = 15): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', String(size));
-  svg.setAttribute('height', String(size));
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', '#3ea6ff');
-  svg.setAttribute('stroke-width', '2.2');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('stroke-linejoin', 'round');
-  svg.style.cssText = 'flex-shrink: 0; display: block;';
-
-  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  rect.setAttribute('x', '3');
-  rect.setAttribute('y', '11');
-  rect.setAttribute('width', '18');
-  rect.setAttribute('height', '10');
-  rect.setAttribute('rx', '2');
-  svg.appendChild(rect);
-
-  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  circle.setAttribute('cx', '12');
-  circle.setAttribute('cy', '5');
-  circle.setAttribute('r', '2');
-  svg.appendChild(circle);
-
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M12 7v4');
-  svg.appendChild(path);
-
-  const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  line1.setAttribute('x1', '8');
-  line1.setAttribute('y1', '15');
-  line1.setAttribute('x2', '8');
-  line1.setAttribute('y2', '15.01');
-  svg.appendChild(line1);
-
-  const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  line2.setAttribute('x1', '16');
-  line2.setAttribute('y1', '15');
-  line2.setAttribute('x2', '16');
-  line2.setAttribute('y2', '15.01');
-  svg.appendChild(line2);
-
-  return svg;
-}
-
-function createHeartSvg(size: number = 9): SVGSVGElement {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', String(size));
-  svg.setAttribute('height', String(size));
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', '#f87171');
-  svg.setAttribute('stroke', '#f87171');
-  svg.setAttribute('stroke-width', '2');
-  svg.style.cssText = 'display: block;';
-
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute(
-    'd',
-    'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'
-  );
-  svg.appendChild(path);
-
-  return svg;
-}
+import { createBrandMarkSvg, createHeartSvg } from './icons';
 
 /**
  * Инлайн-виджет расширения YouTube Autopilot в панели управления плеера.
@@ -182,8 +116,8 @@ export class YouTubePlayerOverlay {
     pillContent.style.cssText =
       "display: inline-flex; align-items: center; gap: 6px; height: 100%; white-space: nowrap; font-family: 'YouTube Noto', Roboto, Arial, sans-serif; font-size: 12px; font-weight: 500; color: #ffffff; user-select: none;";
 
-    // Robot icon
-    pillContent.appendChild(createRobotSvg(15));
+    // Знак бренда
+    pillContent.appendChild(createBrandMarkSvg(15));
 
     // Percent span
     this.pillPercentSpan = document.createElement('span');
@@ -249,7 +183,7 @@ export class YouTubePlayerOverlay {
     const titleGroup = document.createElement('div');
     titleGroup.style.cssText =
       'display: flex; align-items: center; gap: 6px; font-weight: 600; color: #f4f4f5; font-size: 12px;';
-    titleGroup.appendChild(createRobotSvg(14));
+    titleGroup.appendChild(createBrandMarkSvg(14));
 
     const popoverTitle = document.createElement('span');
     popoverTitle.textContent = t('app.title');
@@ -273,7 +207,7 @@ export class YouTubePlayerOverlay {
       'display: flex; justify-content: space-between; font-size: 11px; color: #a1a1aa; margin-bottom: 4px;';
 
     const progressLabel = document.createElement('span');
-    progressLabel.textContent = t('player.realWatch');
+    progressLabel.textContent = t('player.progress');
 
     this.popoverPercentSpan = document.createElement('span');
     this.popoverPercentSpan.style.cssText = 'color: #3ea6ff; font-weight: 600;';

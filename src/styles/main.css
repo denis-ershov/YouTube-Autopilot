@@ -8,6 +8,40 @@
   }
 }
 
+/* Базовые элементы дизайн-системы: единая высота (44px), радиусы и состояния фокуса */
+@layer components {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950;
+  }
+  .btn {
+    @apply focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-xs font-medium transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 text-white shadow-lg shadow-brand-900/20 hover:bg-brand-500;
+  }
+  .btn-secondary {
+    @apply btn border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700;
+  }
+  .btn-ghost {
+    @apply btn text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200;
+  }
+  .field {
+    @apply min-h-11 w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 text-xs text-zinc-100 focus:border-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40;
+  }
+  .card {
+    @apply rounded-xl border border-zinc-800 bg-zinc-900 p-4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* Custom scrollbar for modern UI */
 ::-webkit-scrollbar {
   width: 6px;

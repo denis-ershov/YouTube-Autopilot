@@ -3,6 +3,12 @@
  */
 export type WatchInterval = [number, number];
 
+/** Процент, после которого видео считается досмотренным (статистика и фильтр истории). */
+export const COMPLETION_PERCENT = 90;
+
+/** Заглушка заголовка до загрузки метаданных YouTube. */
+export const DEFAULT_VIDEO_TITLE = 'YouTube Video';
+
 export enum VideoSource {
   WATCH_PAGE = 'WATCH_PAGE',
   SHORTS = 'SHORTS',
@@ -12,15 +18,6 @@ export enum VideoSource {
   WATCH_LATER = 'WATCH_LATER',
   PLAYLIST = 'PLAYLIST',
   CHANNEL = 'CHANNEL',
-}
-
-export enum VideoState {
-  NEW = 'NEW',
-  WATCHING = 'WATCHING',
-  PAUSED = 'PAUSED',
-  PROGRESS = 'PROGRESS',
-  COMPLETED = 'COMPLETED',
-  ABANDONED = 'ABANDONED',
 }
 
 export interface VideoRecord {
@@ -52,7 +49,6 @@ export interface VideoRecord {
   saved?: boolean;
 
   source?: VideoSource;
-  state?: VideoState;
 
   createdAt: number;
   updatedAt: number;

@@ -1,6 +1,6 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { VideoRecord } from '../types/video';
-import { RuleExecution } from '../types/rules';
+import { ActionType, RuleExecution } from '../types/rules';
 
 interface YouTubeAutopilotDB extends DBSchema {
   videos: {
@@ -61,9 +61,11 @@ export async function getVideoRecord(id: string): Promise<VideoRecord | undefine
   return db.get('videos', id);
 }
 
+/** Все видео, отсортированные от последних просмотренных к старым. */
 export async function getAllVideos(): Promise<VideoRecord[]> {
   const db = await getDB();
-  return db.getAllFromIndex('videos', 'by-updatedAt');
+  const videos = await db.getAllFromIndex('videos', 'by-updatedAt');
+  return videos.reverse();
 }
 
 export async function saveRuleExecution(exec: RuleExecution): Promise<void> {
@@ -71,16 +73,11 @@ export async function saveRuleExecution(exec: RuleExecution): Promise<void> {
   await db.put('rule_executions', exec);
 }
 
-export async function getRuleExecutionsForVideo(videoId: string): Promise<RuleExecution[]> {
+/** Было ли действие успешно выполнено для видео любым правилом (идемпотентность на уровне видео). */
+export async function isActionExecuted(videoId: string, action: ActionType): Promise<boolean> {
   const db = await getDB();
-  return db.getAllFromIndex('rule_executions', 'by-videoId', videoId);
-}
-
-export async function isRuleActionExecuted(videoId: string, ruleId: string, action: string): Promise<boolean> {
-  const executions = await getRuleExecutionsForVideo(videoId);
-  return executions.some(
-    (e) => e.ruleId === ruleId && e.action === action && e.status === 'success'
-  );
+  const executions = await db.getAllFromIndex('rule_executions', 'by-videoId', videoId);
+  return executions.some((e) => e.action === action && e.status === 'success');
 }
 
 export async function getAllRuleExecutions(): Promise<RuleExecution[]> {

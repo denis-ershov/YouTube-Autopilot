@@ -2,6 +2,76 @@
 
 Все значимые изменения проекта фиксируются в этом файле в соответствии с правилами разработки (`@[user_global]`).
 
+## [1.2.0] - 2026-10-30
+
+Аудит проекта: исправление несостыковок, удаление мёртвого кода, синхронизация кода и документации, новый логотип.
+
+### Исправлено
+- **Popup не показывал текущее видео**: сообщение `GET_VIDEO_RECORD` отправлялось, но не обрабатывалось Background. Добавлен обработчик.
+- **Удалённые правила «воскресали»**: `getRules()` заново засевал пресеты, если пользователь удалил все правила. Теперь пресеты засеваются только при отсутствии ключа.
+- **Повторный запуск действий**: в режиме `automatic` действие с задержкой планировалось заново каждые 2 с, а в режиме `approval` баннер переоткрывался. `ActionEngine` теперь резервирует ключ `videoId:action`, выполняет действие один раз на видео (даже если его требуют два пресета автолайка) и не повторяет отклонённые/упавшие действия.
+- **Запись в чужую IndexedDB**: fallback `ActionEngine` писал логи напрямую в IndexedDB из Content Script, то есть в базу origin `youtube.com`, а не расширения. Fallback удалён — писатель только Background.
+- **Сломанные цвета**: классы `brand-400` / `brand-950` использовались, но отсутствовали в палитре Tailwind и не генерировались. Палитра дополнена.
+- **Имена пресетов** отображались как ключи (`likeCompleted`) в списке правил и баннере. Добавлен `getRuleDisplayName()`.
+- **Описание правил**: для пресета с условием `SOURCE` выводилось «Реально ≥ WATCH_LATER%». Добавлен `describeConditions()` для всех типов условий.
+- **Фолбэки `t(...) || x` никогда не срабатывали** (`t` возвращает ключ). У `t()` появился явный параметр `fallback`.
+- **Фильтры истории «С лайком» / «Сохранённые» всегда пусты**: Background теперь выставляет `video.liked` / `video.saved` после успешных действий; история сортируется от новых к старым.
+- **Мастер онбординга** игнорировал выбранный порог и автоматизации: порог переносится в пресеты автолайка, выбор включает/выключает их (`src/core/onboarding.ts`).
+- **Статистика** «Сработавших правил» / «Лайков» подставляла число включённых правил при нуле выполнений. Показываются только реальные данные.
+- **Смена режима отслеживания** применялась только к следующему видео — трекер теперь получает режим сразу (`setMode`).
+- **Прогресс при SPA-переходе** мог засчитываться старому видео в окне 800 мс — трекер сбрасывается при навигации.
+- **Язык в Popup**: при `auto` кнопка всегда показывала «RU»; теперь отображается фактический язык.
+- Версия в Dashboard была захардкожена (`v1.1.0` при пакете `1.1.1`) — берётся из манифеста; `package-lock.json` синхронизирован с `package.json`.
+- `IS_SHORT` определялся по длительности ≤ 60 с (Shorts бывают до 3 мин) — теперь по URL `/shorts/`.
+
+### Удалено (мёртвый код)
+- Необрабатываемые типы сообщений: `EVALUATE_RULES`, `EXECUTE_ACTION`, `GET_CURRENT_VIDEO_STATUS`, `CURRENT_VIDEO_STATUS_RESPONSE`, `APPROVE_ACTION`, `REJECT_ACTION`, `SHOW_APPROVAL_MODAL` и payload-типы к ним.
+- Неиспользуемые поля: `Settings.defaultDelay`, `trackInactiveTab`, `shortsEnabled`, `autoLikeOnFastForward`; `Rule.maxRetries`; `Action.options`; enum `VideoState`.
+- Вкладка «Менеджер Смотреть позже» (фильтр без данных) и пункт онбординга «Точный учёт просмотра» (ни на что не влиял).
+- 20 неиспользуемых ключей локализации и эмодзи в строках действий/пресетов.
+- Неиспользуемые зависимости `clsx`, `tailwind-merge`; токены `dark.*` и `darkMode` в Tailwind; неиспользуемый `public/icons/logo.png`.
+- `.wxt/` удалён из индекса Git (был в `.gitignore`, но отслеживался; генерируется `wxt prepare` при `npm install`).
+
+### Изменено
+- **Новый логотип**: кольцо прогресса + Play + маркер порога на сине-индиго squircle вместо робота с красным треугольником YouTube. `scripts/generate_icons.py` теперь единый источник геометрии и генерирует `icon.svg` и PNG 16–512; `<Logo />` использует `icon.svg`, оверлей и баннер — упрощённый знак из `src/youtube/icons.ts`.
+- Пресет «Очищать «Смотреть позже»» и действие `REMOVE_FROM_WATCH_LATER` скрыты из UI: DOM-действие не реализовано (см. «Известные ограничения» в `PARSING_ARCHITECTURE.md`).
+- Пресеты автолайка переименованы без «90%» в названии — порог теперь настраивается.
+- Идемпотентность перенесена на уровень видео: сообщение `CHECK_RULE_EXECUTED` заменено на `CHECK_ACTION_EXECUTED { videoId, action }`.
+
+### Оптимизация и рефакторинг
+- Условия правил проверяются до IPC-запроса идемпотентности (раньше — запрос на каждое действие каждые 2 с).
+- Dashboard (815 строк) разбит на `Sidebar` и вкладки; дублирующаяся разметка заменена компонентами `ChoiceCard`, `PageHeader` и классами `.btn-*`, `.field`, `.card`.
+- Общие утилиты вместо дублей: `getVideoIdFromUrl` (`src/youtube/url.ts`), `readPlayerState`, `readStorage`/`writeStorage`, иконки внедряемого UI, баннер подтверждения вынесен в `src/youtube/approvalBanner.ts`.
+- Убраны `any` в `safeSendMessage`, Background и формах; операторы правил типизированы `Operator`.
+- Доступность: нативные кнопки вместо `div onClick`, `role="radiogroup"`, `aria-current`, `<label htmlFor>`, видимый фокус, высота 44 px, `prefers-reduced-motion`, подтверждение удаления правила, Escape в баннере.
+
+### Документация
+- `API_ARCHITECTURE.md`: протокол приведён к реально обрабатываемым сообщениям, исправлена схема (правила и подтверждения — в Content Script).
+- `DB_ARCHITECTURE.md`: фактические ключи `yt_autopilot_*`, удалены несуществующие store `history` и «очистка логов старше 90 дней».
+- `PARSING_ARCHITECTURE.md`: новые модули, раздел «Известные ограничения».
+- Новый `UI_ARCHITECTURE.md`: дизайн-система, токены, компоненты, правила логотипа.
+- `README.md` / `README_EN.md`: структура проекта, `chrome.storage.local` вместо «Storage Sync», описание Dashboard.
+
+### Список изменённых файлов
+- `entrypoints/background.ts`, `entrypoints/content.ts`
+- `entrypoints/popup/App.tsx`
+- `entrypoints/dashboard/App.tsx`, `entrypoints/dashboard/index.html`, новые `Sidebar.tsx`, `tabs/OverviewTab.tsx`, `tabs/RulesTab.tsx`, `tabs/RuleForm.tsx`, `tabs/HistoryTab.tsx`, `tabs/SettingsTab.tsx`
+- `src/components/Logo.tsx`, `src/components/OnboardingModal.tsx`, новые `ChoiceCard.tsx`, `PageHeader.tsx`
+- `src/core/actions/ActionEngine.ts`, `src/core/rules/RuleEngine.ts`, `src/core/storage/storage.ts`, `src/core/utils/runtime.ts`, новые `src/core/rules/labels.ts`, `src/core/onboarding.ts`
+- `src/database/indexeddb.ts`, `src/i18n/index.ts`, `src/locales/ru.json`, `src/locales/en.json`, `src/styles/main.css`
+- `src/types/messages.ts`, `src/types/rules.ts`, `src/types/settings.ts`, `src/types/video.ts`
+- `src/youtube/adapter.ts`, `navigation.ts`, `overlay.ts`, `player.ts`, новые `url.ts`, `icons.ts`, `approvalBanner.ts`
+- `scripts/generate_icons.py`, `public/icons/*` (удалён `logo.png`)
+- `tailwind.config.js`, `package.json`, `package-lock.json`
+- `docs/*`, `README.md`, `README_EN.md`
+
+### Миграции и откат
+- Миграции данных не требуются: схема IndexedDB не менялась, устаревшие поля настроек игнорируются, пресеты в хранилище сохраняются.
+- Сообщение `CHECK_RULE_EXECUTED` переименовано в `CHECK_ACTION_EXECUTED` — внутренний контракт, внешних клиентов нет.
+- Откат: `git revert` коммита и пересборка (`npm run build:all`); данные пользователей совместимы в обе стороны.
+
+---
+
 ## [1.1.1] - 2026-09-03
 
 ### Исправлено и улучшено (AMO Compliance & Safe DOM)

@@ -49,7 +49,7 @@
 | 🎯 **Гибкий движок правил (Rule Engine)** | Конструктор автоматизаций с логикой **ЕСЛИ → КОГДА → ТОГДА**. Поддерживает пороги %, длительность, каналы, Shorts и статус подписки. |
 | 🛡️ **Режимы подтверждения** | **Approval Mode**: интерактивное всплывающее уведомление на YouTube с кнопками «Разрешить» / «Пропустить».<br>**Automatic Mode**: тихое фоновое выполнение. |
 | 📌 **Инлайн-оверлей в плеере YouTube** | Нативный капсульный виджет рядом с элементами управления плеера: показывает % просмотра, точное время и бейдж следующего действия (Pixel Perfect, WCAG). |
-| 📊 **Аналитический Dashboard** | Полноценная панель управления: суммарная статистика, история просмотров по видео, управление плейлистом «Смотреть позже» и пресеты правил. |
+| 📊 **Аналитический Dashboard** | Полноценная панель управления: суммарная статистика, история просмотров с фильтрами (завершённые, с лайком, сохранённые) и пресеты правил. |
 | 🌍 **Мультиязычность (i18n)** | 100% локализация интерфейса на русском и английском языках (`ru`, `en`, `auto`) без жестко зашитых строк. |
 | 🔒 **100% Локальные данные** | Вся история, правила и статистика хранятся исключительно на вашем устройстве в локальной IndexedDB. Никакой телеметрии и серверов. |
 
@@ -108,7 +108,7 @@ flowchart TB
     subgraph Background_SW["Background Service Worker"]
         MsgRouter["IPC Message Router"]
         DB_Layer["IndexedDB Layer (idb)<br/>• videos store<br/>• rule_executions store"]
-        StorageSync["Chrome Storage Sync<br/>(Settings & Rules)"]
+        StorageSync["chrome.storage.local<br/>(Settings & Rules)"]
     end
 
     subgraph Extension_UI["Пользовательский интерфейс (React 19)"]
@@ -217,10 +217,10 @@ npm run zip:all
 │       ├── index.html
 │       └── main.tsx
 ├── src/
-│   ├── components/              # Переиспользуемые UI-компоненты (Onboarding, Logo)
+│   ├── components/              # Переиспользуемые UI-компоненты (Logo, ChoiceCard, PageHeader, Onboarding)
 │   ├── core/                    # Бизнес-логика, не зависящая от DOM
 │   │   ├── actions/             # ActionEngine (идемпотентность, кулдауны)
-│   │   ├── rules/               # RuleEngine (оценка условий)
+│   │   ├── rules/               # RuleEngine (оценка условий) и подписи правил
 │   │   ├── storage/             # Хранилище настроек chrome.storage
 │   │   ├── utils/               # Утилиты рантайма и безопасный safeSendMessage
 │   │   └── watcher/             # RealWatchTracker (интервалы, перемотка)
@@ -229,18 +229,24 @@ npm run zip:all
 │   ├── locales/                 # Словари локализации (ru.json, en.json)
 │   ├── types/                   # TypeScript интерфейсы и контракты
 │   └── youtube/                 # Изолированный слой работы с YouTube
-│       ├── actions.ts           # Нажатие кнопок Like / Watch Later
+│       ├── actions.ts           # DOM-действия (Like, Save, Hide) с retry policy
+│       ├── approvalBanner.ts    # Карточка подтверждения действия
 │       ├── adapter.ts           # Фасад взаимодействия
 │       ├── navigation.ts        # Отслеживание SPA-переходов
+│       ├── icons.ts             # SVG-иконки для внедряемого UI (знак бренда)
 │       ├── overlay.ts           # Инлайн-виджет плеера
 │       ├── player.ts            # PlayerObserver
-│       └── selectors.ts         # CSS-селекторы плеера
+│       ├── selectors.ts         # CSS-селекторы плеера
+│       └── url.ts               # Разбор Video ID из URL
 ├── docs/                        # Архитектурная документация и CHANGELOG
 │   ├── API_ARCHITECTURE.md      # Протокол сообщений IPC и контракты данных
 │   ├── DB_ARCHITECTURE.md       # Схема IndexedDB и локального хранилища
 │   ├── PARSING_ARCHITECTURE.md  # Алгоритмы трекинга, DOM-селекторы и безопасность
+│   ├── UI_ARCHITECTURE.md       # Дизайн-система, компоненты и логотип
 │   └── CHANGELOG.md             # Журнал всех версий и изменений
-├── public/                      # Статические ресурсы и иконки
+├── public/                      # Статические ресурсы и иконки (генерируются скриптом)
+├── scripts/
+│   └── generate_icons.py        # Генератор логотипа: icon.svg + PNG 16–512 из одной геометрии
 ├── .github/                     # GitHub Actions CI и шаблоны Issue
 ├── BUILD.md                     # Воспроизводимые инструкции по сборке (AMO)
 ├── CONTRIBUTING.md              # Руководство для участников разработки

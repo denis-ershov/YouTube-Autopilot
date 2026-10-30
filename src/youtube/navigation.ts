@@ -1,3 +1,5 @@
+import { getVideoIdFromUrl } from './url';
+
 export type NavigationCallback = (videoId: string, url: string) => void;
 
 /**
@@ -16,7 +18,7 @@ export class YouTubeNavigationObserver {
   public onVideoChange(callback: NavigationCallback): void {
     this.callbacks.push(callback);
     // Запустить сразу, если видео уже открыто, и немедленно зафиксировать lastVideoId
-    const currentId = this.getVideoIdFromUrl(window.location.href);
+    const currentId = getVideoIdFromUrl(window.location.href);
     if (currentId) {
       this.lastVideoId = currentId;
       try {
@@ -25,20 +27,6 @@ export class YouTubeNavigationObserver {
         console.error('[YouTube Autopilot] Initial navigation callback error:', err);
       }
     }
-  }
-
-  public getVideoIdFromUrl(url: string): string | null {
-    try {
-      const parsed = new URL(url);
-      if (parsed.pathname === '/watch') {
-        return parsed.searchParams.get('v');
-      } else if (parsed.pathname.startsWith('/shorts/')) {
-        return parsed.pathname.split('/shorts/')[1]?.split('?')[0]?.split('/')[0] || null;
-      }
-    } catch {
-      return null;
-    }
-    return null;
   }
 
   private initListeners(): void {
@@ -62,7 +50,7 @@ export class YouTubeNavigationObserver {
   }
 
   private checkUrlChange(): void {
-    const videoId = this.getVideoIdFromUrl(window.location.href);
+    const videoId = getVideoIdFromUrl(window.location.href);
     if (videoId && videoId !== this.lastVideoId) {
       this.lastVideoId = videoId;
       this.callbacks.forEach((cb) => {

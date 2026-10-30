@@ -2,7 +2,7 @@
   "app": {
     "title": "YouTube Autopilot",
     "subtitle": "Smart YouTube Workflow Automation",
-    "version": "v1.1.0 • Smart Automation",
+    "version": "v{{version}} • Smart Automation",
     "statusActive": "Autopilot Active",
     "statusPaused": "Autopilot Disabled"
   },
@@ -16,13 +16,12 @@
     "back": "Back",
     "continue": "Continue",
     "finish": "Finish Setup",
-    "save": "Save",
     "delete": "Delete",
     "actions": {
-      "LIKE_VIDEO": "❤️ Like Video",
-      "REMOVE_FROM_WATCH_LATER": "🧹 Remove from Watch Later",
-      "SAVE_VIDEO": "📚 Save Video",
-      "HIDE_VIDEO": "🙈 Hide Video"
+      "LIKE_VIDEO": "Like Video",
+      "REMOVE_FROM_WATCH_LATER": "Remove from Watch Later",
+      "SAVE_VIDEO": "Save Video",
+      "HIDE_VIDEO": "Hide Video"
     }
   },
   "onboarding": {
@@ -32,8 +31,6 @@
     "welcomeDesc": "Autopilot understands how much of the video you actually watch and automates your YouTube workflow without manual clicks.",
     "automateTitle": "What do you want to automate?",
     "autoLikeDesc": "Auto Like completed videos",
-    "watchLaterDesc": "Watch Later list auto-cleanup",
-    "realWatchDesc": "Track real watched time (interval detection)",
     "thresholdTitle": "Choose default completion threshold",
     "thresholdDesc": "Rules trigger when you reach this percentage of real watch time.",
     "thresholdLabel": "Completion Threshold",
@@ -43,7 +40,6 @@
     "autoTitle": "Automatic execution",
     "autoDesc": "Executes actions in background silently without popups",
     "trackModeTitle": "Watch Tracking Mode",
-    "trackModeDesc": "How the extension determines video completion percentage",
     "trackModeReal": "Real Time (intervals)",
     "trackModeRealDesc": "Only counts seconds actually watched on screen without skips",
     "trackModePosition": "With Seeking (by timeline scrubber)",
@@ -56,11 +52,7 @@
     "realWatchTime": "Real watch time",
     "positionWatchTime": "Position",
     "nextAction": "Next action",
-    "noActions": "No pending actions",
     "openDashboard": "Open Dashboard",
-    "quickSettings": "Settings",
-    "history": "History",
-    "mode": "MODE",
     "total": "Total",
     "loading": "Loading YouTube Autopilot...",
     "likeAt": "Like at {{percent}}%",
@@ -76,7 +68,6 @@
       "overview": "Overview",
       "rules": "Automations",
       "history": "History",
-      "watchLater": "Watch Later Manager",
       "settings": "Settings"
     },
     "overview": {
@@ -102,27 +93,29 @@
       "newRuleTitle": "New Rule Automation",
       "placeholderName": "e.g. Auto Like at 90%",
       "save": "Save Rule",
-      "delete": "Delete",
       "enable": "Enable",
       "disable": "Disable",
-      "watchedCondition": "Watched ≥ {{threshold}}%"
-    },
-    "watchLater": {
-      "subtitle": "Manage and auto-clean watched videos from Watch Later",
-      "warningTitle": "Auto-cleanup Warning",
-      "warningDesc": "This feature automatically removes videos from Watch Later list after reaching your selected completion threshold.",
-      "filterRange": "Completion Filter Range",
-      "allVideos": "All Videos",
-      "range25": "< 25% Watched",
-      "range50": "25–50% Watched",
-      "range75": "50–75% Watched",
-      "range90": "75–90% Watched",
-      "range100": "90–100% Watched"
+      "conditionLabel": "Condition",
+      "deleteConfirm": "Delete rule \"{{name}}\"? This cannot be undone.",
+      "conditions": {
+        "WATCHED_PERCENT": "Watched",
+        "TIMELINE_PERCENT": "Timeline",
+        "REAL_WATCHED_PERCENT": "Real watch",
+        "WATCHED_SECONDS": "Watched seconds",
+        "VIDEO_DURATION": "Duration",
+        "CHANNEL": "Channel",
+        "SOURCE": "Source",
+        "IS_SHORT": "Shorts",
+        "IS_SUBSCRIBED": "Subscribed"
+      },
+      "sources": {
+        "WATCH_LATER": "Watch Later"
+      }
     },
     "history": {
       "subtitle": "Locally stored watch history and real intervals",
       "allHistory": "All History",
-      "completed": "Completed (≥90%)",
+      "completed": "Completed (≥{{percent}}%)",
       "liked": "Liked",
       "saved": "Saved",
       "empty": "No watch history recorded yet. Open YouTube to start tracking!",
@@ -145,29 +138,26 @@
       "automationMode": "Automation Mode",
       "modeAuto": "Automatic execution",
       "modeApproval": "Ask before action (Recommended)",
-      "modeDisabled": "Disabled",
       "language": "Interface Language",
       "langAuto": "Auto",
       "langRu": "Русский",
-      "langEn": "English",
-      "saveSuccess": "Settings saved successfully"
-    }
+      "langEn": "English"
+    },
+    "loadError": "Could not load extension data. Please reload the page."
   },
   "player": {
-    "realWatch": "Real Watch Progress",
     "watched": "Watched",
     "next": "Next",
     "active": "Active",
-    "likeAt": "Like at {{percent}}%"
+    "likeAt": "Like at {{percent}}%",
+    "progress": "Watch progress"
   },
   "presets": {
-    "likeCompleted": "❤️ Auto Like completed videos (90% real watch)",
-    "likeCompletedTimeline": "⚡ Auto Like with seek (scrubber ≥ 90%)",
-    "cleanWatchLater": "🧹 Clean Watch Later list",
-    "favoriteCreators": "👤 Support favorite creators"
+    "likeCompleted": "Auto-like on real watch",
+    "likeCompletedTimeline": "Auto-like with seeking",
+    "cleanWatchLater": "Clean Watch Later list"
   },
   "approval": {
-    "title": "YouTube Autopilot",
     "rule": "Rule",
     "wantsTo": "wants to execute",
     "allow": "Allow",

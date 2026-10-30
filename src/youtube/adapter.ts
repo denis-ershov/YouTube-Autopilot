@@ -4,6 +4,8 @@ import { PlayerObserver } from './player';
 import { executeYouTubeDOMAction, ActionResult } from './actions';
 import { YouTubePlayerOverlay } from './overlay';
 import { ActionType } from '../types/rules';
+import { DEFAULT_VIDEO_TITLE } from '../types/video';
+import { getVideoIdFromUrl } from './url';
 
 export interface CurrentVideoMetadata {
   id: string;
@@ -12,6 +14,7 @@ export interface CurrentVideoMetadata {
   channelName?: string;
   duration: number;
   isSubscribed?: boolean;
+  isShort: boolean;
 }
 
 export class YouTubeAdapter {
@@ -38,17 +41,20 @@ export class YouTubeAdapter {
   }
 
   public getCurrentMetadata(): CurrentVideoMetadata | null {
-    const videoId = this.navObserver.getVideoIdFromUrl(window.location.href);
+    const videoId = getVideoIdFromUrl(window.location.href);
     if (!videoId) return null;
 
     const titleEl = document.querySelector(YOUTUBE_SELECTORS.VIDEO_TITLE);
-    const title = titleEl?.textContent?.trim() || 'YouTube Video';
+    const title = titleEl?.textContent?.trim() || DEFAULT_VIDEO_TITLE;
 
     const channelEl = document.querySelector(YOUTUBE_SELECTORS.CHANNEL_NAME);
     const channelName = channelEl?.textContent?.trim();
 
     const subBtn = document.querySelector<HTMLElement>(YOUTUBE_SELECTORS.SUBSCRIBE_BUTTON);
-    const isSubscribed = subBtn ? subBtn.getAttribute('subscribed') !== null || subBtn.textContent?.includes('Subscribed') || subBtn.textContent?.includes('Вы подписаны') : false;
+    const subText = subBtn?.textContent ?? '';
+    const isSubscribed = subBtn
+      ? subBtn.hasAttribute('subscribed') || subText.includes('Subscribed') || subText.includes('Вы подписаны')
+      : false;
 
     const playerState = this.playerObserver.getState();
     const duration = playerState?.duration || 0;
@@ -60,6 +66,7 @@ export class YouTubeAdapter {
       channelName,
       duration,
       isSubscribed,
+      isShort: window.location.pathname.startsWith('/shorts/'),
     };
   }
 

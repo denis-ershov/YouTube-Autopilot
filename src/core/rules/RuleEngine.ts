@@ -1,8 +1,11 @@
-import { Rule, Condition } from '../../types/rules';
+import { Rule, Condition, Operator } from '../../types/rules';
 import { VideoRecord } from '../../types/video';
 
+/** Видео с признаками, известными только в момент просмотра (не хранятся в IndexedDB). */
+export type RuleVideoContext = VideoRecord & { isSubscribed?: boolean; isShort?: boolean };
+
 export class RuleEngine {
-  public static evaluateRule(rule: Rule, video: VideoRecord & { isSubscribed?: boolean }): boolean {
+  public static evaluateRule(rule: Rule, video: RuleVideoContext): boolean {
     if (!rule.enabled) return false;
     if (rule.conditions.length === 0) return false;
 
@@ -10,7 +13,7 @@ export class RuleEngine {
     return rule.conditions.every((condition) => this.evaluateCondition(condition, video));
   }
 
-  public static evaluateCondition(condition: Condition, video: VideoRecord & { isSubscribed?: boolean }): boolean {
+  public static evaluateCondition(condition: Condition, video: RuleVideoContext): boolean {
     const { type, operator, value } = condition;
 
     switch (type) {
@@ -37,19 +40,23 @@ export class RuleEngine {
         return this.compareString(video.source || '', operator, value);
 
       case 'IS_SHORT':
-        const isShort = video.duration > 0 && video.duration <= 60;
-        return operator === 'IS' ? isShort === Boolean(value) : isShort !== Boolean(value);
+        return this.compareBoolean(Boolean(video.isShort), operator, value);
 
       case 'IS_SUBSCRIBED':
-        const sub = Boolean(video.isSubscribed);
-        return operator === 'IS' ? sub === Boolean(value) : sub !== Boolean(value);
+        return this.compareBoolean(Boolean(video.isSubscribed), operator, value);
 
       default:
         return false;
     }
   }
 
-  private static compareNumeric(actual: number, operator: string, target: number): boolean {
+  private static compareBoolean(actual: boolean, operator: Operator, target: unknown): boolean {
+    if (operator === 'IS') return actual === Boolean(target);
+    if (operator === 'IS_NOT') return actual !== Boolean(target);
+    return false;
+  }
+
+  private static compareNumeric(actual: number, operator: Operator, target: number): boolean {
     switch (operator) {
       case 'EQ':
         return actual === target;
@@ -66,7 +73,7 @@ export class RuleEngine {
     }
   }
 
-  private static compareString(actual: string, operator: string, target: unknown): boolean {
+  private static compareString(actual: string, operator: Operator, target: unknown): boolean {
     const actualLower = actual.toLowerCase();
 
     if (operator === 'EQ') {

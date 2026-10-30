@@ -3,73 +3,59 @@ import ruDict from '../locales/ru.json';
 import { LanguageCode } from '../types/settings';
 
 type TranslationDict = typeof enDict;
+type ResolvedLanguage = 'ru' | 'en';
 
-const dictionaries: Record<string, TranslationDict> = {
+const FALLBACK_LANGUAGE: ResolvedLanguage = 'en';
+
+const dictionaries: Record<ResolvedLanguage, TranslationDict> = {
   en: enDict,
   ru: ruDict,
 };
 
-let currentLanguage: 'ru' | 'en' = typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru') ? 'ru' : 'en';
-
-export function getBrowserLanguage(): 'ru' | 'en' {
-  if (typeof navigator !== 'undefined') {
-    const lang = navigator.language.toLowerCase();
-    if (lang.startsWith('ru')) return 'ru';
+export function getBrowserLanguage(): ResolvedLanguage {
+  if (typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru')) {
+    return 'ru';
   }
-  return 'en';
+  return FALLBACK_LANGUAGE;
 }
 
-export function getCurrentLanguage(): 'ru' | 'en' {
+let currentLanguage: ResolvedLanguage = getBrowserLanguage();
+
+export function getCurrentLanguage(): ResolvedLanguage {
   return currentLanguage;
 }
 
-export function setLanguage(lang: LanguageCode) {
-  if (lang === 'auto') {
-    currentLanguage = getBrowserLanguage();
-  } else {
-    currentLanguage = lang;
-  }
+export function setLanguage(lang: LanguageCode): void {
+  currentLanguage = lang === 'auto' ? getBrowserLanguage() : lang;
 }
 
 /**
- * Получить переведенное значение по вложенному ключу, напр. "popup.currentVideo"
+ * Поиск строки по вложенному ключу, напр. "popup.currentVideo"
  */
-export function t(key: string, params?: Record<string, string | number>): string {
-  const dict = dictionaries[currentLanguage] || dictionaries.en;
-  const parts = key.split('.');
-  
+function lookup(dict: TranslationDict, key: string): string | undefined {
   let val: unknown = dict;
-  for (const part of parts) {
-    if (val && typeof val === 'object' && part in val) {
-      val = (val as Record<string, unknown>)[part];
-    } else {
-      val = undefined;
-      break;
-    }
+  for (const part of key.split('.')) {
+    if (!val || typeof val !== 'object' || !(part in val)) return undefined;
+    val = (val as Record<string, unknown>)[part];
   }
+  return typeof val === 'string' ? val : undefined;
+}
 
-  if (typeof val !== 'string') {
-    // Fallback на английский
-    let fallbackVal: unknown = dictionaries.en;
-    for (const part of parts) {
-      if (fallbackVal && typeof fallbackVal === 'object' && part in fallbackVal) {
-        fallbackVal = (fallbackVal as Record<string, unknown>)[part];
-      } else {
-        fallbackVal = key;
-        break;
-      }
-    }
-    val = typeof fallbackVal === 'string' ? fallbackVal : key;
-  }
+function interpolate(template: string, params?: Record<string, string | number>): string {
+  if (!params) return template;
+  return Object.entries(params).reduce(
+    (result, [paramKey, paramVal]) => result.split(`{{${paramKey}}}`).join(String(paramVal)),
+    template
+  );
+}
 
-  let result = val as string;
-  if (params) {
-    Object.entries(params).forEach(([paramKey, paramVal]) => {
-      result = result.replace(new RegExp(`{{${paramKey}}}`, 'g'), String(paramVal));
-    });
-  }
-
-  return result;
+/**
+ * Перевод с fallback на английский. Если ключа нет ни в одном словаре — возвращает `fallback`
+ * (по умолчанию сам ключ), чтобы интерфейс никогда не показывал undefined.
+ */
+export function t(key: string, params?: Record<string, string | number>, fallback: string = key): string {
+  const value = lookup(dictionaries[currentLanguage], key) ?? lookup(dictionaries[FALLBACK_LANGUAGE], key);
+  return interpolate(value ?? fallback, params);
 }
 
 export function formatSeconds(totalSeconds: number): string {

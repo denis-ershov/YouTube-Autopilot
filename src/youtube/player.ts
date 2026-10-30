@@ -10,6 +10,21 @@ export interface PlayerState {
 
 export type PlayerEventCallback = (state: PlayerState, eventType: string) => void;
 
+/** Нормализует число из <video>: NaN, Infinity (live) и отрицательные значения → 0. */
+function safeSeconds(value: number): number {
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function readPlayerState(el: HTMLVideoElement): PlayerState {
+  return {
+    currentTime: safeSeconds(el.currentTime),
+    duration: safeSeconds(el.duration),
+    paused: el.paused,
+    ended: el.ended,
+    playbackRate: el.playbackRate || 1,
+  };
+}
+
 /**
  * Наблюдатель за HTML5 Video элементом YouTube.
  * Обеспечивает реактивное переподключение при SPA-переходах,
@@ -126,24 +141,7 @@ export class PlayerObserver {
 
   private handleVideoEvent(e: Event): void {
     if (!this.videoElement) return;
-
-    const rawDuration = this.videoElement.duration;
-    const duration =
-      typeof rawDuration === 'number' && !Number.isNaN(rawDuration) && rawDuration > 0
-        ? rawDuration
-        : 0;
-
-    const rawTime = this.videoElement.currentTime;
-    const currentTime =
-      typeof rawTime === 'number' && !Number.isNaN(rawTime) && rawTime >= 0 ? rawTime : 0;
-
-    const state: PlayerState = {
-      currentTime,
-      duration,
-      paused: this.videoElement.paused,
-      ended: this.videoElement.ended,
-      playbackRate: this.videoElement.playbackRate || 1,
-    };
+    const state = readPlayerState(this.videoElement);
 
     this.callbacks.forEach((cb) => {
       try {
@@ -156,25 +154,7 @@ export class PlayerObserver {
 
   public getState(): PlayerState | null {
     const el = this.findVideoElement();
-    if (!el) return null;
-
-    const rawDuration = el.duration;
-    const duration =
-      typeof rawDuration === 'number' && !Number.isNaN(rawDuration) && rawDuration > 0
-        ? rawDuration
-        : 0;
-
-    const rawTime = el.currentTime;
-    const currentTime =
-      typeof rawTime === 'number' && !Number.isNaN(rawTime) && rawTime >= 0 ? rawTime : 0;
-
-    return {
-      currentTime,
-      duration,
-      paused: el.paused,
-      ended: el.ended,
-      playbackRate: el.playbackRate || 1,
-    };
+    return el ? readPlayerState(el) : null;
   }
 
   public destroy(): void {
