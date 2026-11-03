@@ -67,3 +67,6 @@ env/
 scratch/
 temp/
 tmp/
+
+# Documentation (local only)
+docs/
