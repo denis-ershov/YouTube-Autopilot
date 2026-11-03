@@ -36,7 +36,7 @@ npm -v    # Ожидается: 9.x.x, 10.x.x или новее
 ### Шаг 3.1: Распаковка архива или клонирование репозитория
 Если вы используете архив с исходным кодом:
 ```bash
-unzip youtube-autopilot-1.1.1-sources.zip -d youtube-autopilot
+unzip youtube-autopilot-1.2.0-sources.zip -d youtube-autopilot
 cd youtube-autopilot
 ```
 
@@ -71,7 +71,7 @@ npm run build:firefox
 ```bash
 npm run zip:firefox
 ```
-* **Итоговый архив:** `.output/youtube-autopilot-1.1.1-firefox.zip`
+* **Итоговый архив:** `.output/youtube-autopilot-1.2.0-firefox.zip`
 
 ### Шаг 3.5: Сборка для Google Chrome (Manifest V3)
 ```bash
@@ -83,7 +83,7 @@ npm run build:chrome
 ```bash
 npm run zip:chrome
 ```
-* **Итоговый архив:** `.output/youtube-autopilot-1.1.1-chrome.zip`
+* **Итоговый архив:** `.output/youtube-autopilot-1.2.0-chrome.zip`
 
 ### Шаг 3.6: Сборка всех версий одной командой
 ```bash

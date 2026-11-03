@@ -6,7 +6,7 @@
 
   **Intelligent browser extension for automating routine YouTube actions based on genuine watch time and fast-forward seek behavior.**
 
-  [![Version](https://img.shields.io/badge/version-1.1.1-blue.svg?style=for-the-badge)](package.json)
+  [![Version](https://img.shields.io/badge/version-1.2.0-blue.svg?style=for-the-badge)](package.json)
   [![Framework](https://img.shields.io/badge/WXT-Next--Gen_Extension-FF5D01?style=for-the-badge&logo=wxt)](https://wxt.dev)
   [![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
